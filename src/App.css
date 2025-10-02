@@ -1,0 +1,23 @@
+.App {
+  width: 100%;
+  min-height: 100vh;
+  background-color: #f8fafc;
+}
+
+/* Animações suaves */
+* {
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Remove o foco padrão do navegador */
+button:focus,
+input:focus {
+  outline: none;
+}
+
+/* Estilos para impressão */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}
