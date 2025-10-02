@@ -1,4 +1,4 @@
-// Types globais do projeto
+// src/types/index.ts
 
 export interface Product {
   id: number;
@@ -35,10 +35,3 @@ export interface FormData {
 }
 
 export type TabType = 'home' | 'stock' | 'manage' | 'alerts' | 'flags';
-
-export interface MetricCard {
-  label: string;
-  value: string | number;
-  icon: React.ComponentType;
-  color: 'blue' | 'green' | 'red' | 'yellow';
-}
