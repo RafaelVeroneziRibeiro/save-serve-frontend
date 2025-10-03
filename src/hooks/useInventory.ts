@@ -4,48 +4,134 @@ import { useState, useMemo } from 'react';
 import { Product, FormData, Alert } from '../types';
 
 const INITIAL_PRODUCTS: Product[] = [
-  { id: 1, name: 'Arroz 5kg', category: 'Grãos', stock: 45, minStock: 20, price: 28.90, lastUpdate: '2025-10-01' },
-  { id: 2, name: 'Feijão Preto 1kg', category: 'Grãos', stock: 12, minStock: 15, price: 8.50, lastUpdate: '2025-10-02' },
-  { id: 3, name: 'Óleo de Soja 900ml', category: 'Óleos', stock: 8, minStock: 10, price: 7.90, lastUpdate: '2025-09-30' },
-  { id: 4, name: 'Açúcar Cristal 1kg', category: 'Açúcares', stock: 30, minStock: 20, price: 4.50, lastUpdate: '2025-10-01' },
-  { id: 5, name: 'Café Torrado 500g', category: 'Bebidas', stock: 25, minStock: 15, price: 18.90, lastUpdate: '2025-10-02' },
-  { id: 6, name: 'Leite Integral 1L', category: 'Laticínios', stock: 5, minStock: 20, price: 5.80, lastUpdate: '2025-10-02' }
+  { 
+    id: 1, 
+    nome: 'Arroz 5kg', 
+    valor: 28.90, 
+    dataEntrada: '2025-01-15T10:30:00', 
+    dataSaida: undefined, 
+    dataValidade: '2026-01-15', 
+    createdAt: '2025-01-15T10:30:00', 
+    updatedAt: '2025-01-15T10:30:00' 
+  },
+  { 
+    id: 2, 
+    nome: 'Feijão Preto 1kg', 
+    valor: 8.50, 
+    dataEntrada: '2025-01-16T14:20:00', 
+    dataSaida: undefined, 
+    dataValidade: '2026-01-16', 
+    createdAt: '2025-01-16T14:20:00', 
+    updatedAt: '2025-01-16T14:20:00' 
+  },
+  { 
+    id: 3, 
+    nome: 'Óleo de Soja 900ml', 
+    valor: 7.90, 
+    dataEntrada: '2025-01-14T09:15:00', 
+    dataSaida: undefined, 
+    dataValidade: '2025-12-14', 
+    createdAt: '2025-01-14T09:15:00', 
+    updatedAt: '2025-01-14T09:15:00' 
+  },
+  { 
+    id: 4, 
+    nome: 'Açúcar Cristal 1kg', 
+    valor: 4.50, 
+    dataEntrada: '2025-01-15T11:45:00', 
+    dataSaida: undefined, 
+    dataValidade: '2026-01-15', 
+    createdAt: '2025-01-15T11:45:00', 
+    updatedAt: '2025-01-15T11:45:00' 
+  },
+  { 
+    id: 5, 
+    nome: 'Café Torrado 500g', 
+    valor: 18.90, 
+    dataEntrada: '2025-01-16T16:30:00', 
+    dataSaida: undefined, 
+    dataValidade: '2026-01-16', 
+    createdAt: '2025-01-16T16:30:00', 
+    updatedAt: '2025-01-16T16:30:00' 
+  },
+  { 
+    id: 6, 
+    nome: 'Leite Integral 1L', 
+    valor: 5.80, 
+    dataEntrada: '2025-01-16T08:00:00', 
+    dataSaida: undefined, 
+    dataValidade: '2025-01-23', 
+    createdAt: '2025-01-16T08:00:00', 
+    updatedAt: '2025-01-16T08:00:00' 
+  }
 ];
 
 export const useInventory = (initialProducts: Product[] = INITIAL_PRODUCTS) => {
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [editingProduct, setEditingProduct] = useState<number | null>(null);
   const [formData, setFormData] = useState<FormData>({
-    name: '', category: '', stock: '', minStock: '', price: ''
+    nome: '', valor: '', dataEntrada: '', dataSaida: '', dataValidade: ''
   });
 
-  const alerts: Alert[] = useMemo(() => products
-    .filter(p => p.stock < p.minStock)
-    .map(p => ({
-      id: p.id,
-      product: p.name,
-      message: `Estoque baixo: ${p.stock} unidades (mínimo: ${p.minStock})`,
-      severity: p.stock < p.minStock * 0.5 ? 'critical' : 'warning',
-      date: new Date().toLocaleDateString('pt-BR')
-    })), [products]);
+  const alerts: Alert[] = useMemo(() => {
+    const now = new Date();
+    const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    
+    return products
+      .filter(p => {
+        const validade = new Date(p.dataValidade);
+        return validade <= sevenDaysFromNow;
+      })
+      .map(p => {
+        const validade = new Date(p.dataValidade);
+        const daysUntilExpiry = Math.ceil((validade.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        const isExpired = daysUntilExpiry <= 0;
+        
+        return {
+          id: p.id,
+          product: p.nome,
+          message: isExpired 
+            ? `Produto vencido: ${p.nome} (vencimento: ${validade.toLocaleDateString('pt-BR')})`
+            : `Produto próximo do vencimento: ${p.nome} (vence em ${daysUntilExpiry} dias)`,
+          severity: isExpired ? 'critical' : 'warning',
+          date: new Date().toLocaleDateString('pt-BR')
+        };
+      });
+  }, [products]);
 
-  const totalValue = useMemo(() => products.reduce((sum, p) => sum + (p.stock * p.price), 0), [products]);
+  const totalValue = useMemo(() => products.reduce((sum, p) => sum + p.valor, 0), [products]);
   const lowStockCount = useMemo(() => alerts.length, [alerts]);
 
+  // Função para converter ISO string para formato datetime-local
+  const formatToDateTimeLocal = (isoString: string): string => {
+    if (!isoString) return '';
+    const date = new Date(isoString);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
+
   const resetForm = () => {
-    setFormData({ name: '', category: '', stock: '', minStock: '', price: '' });
+    setFormData({ nome: '', valor: '', dataEntrada: '', dataSaida: '', dataValidade: '' });
   };
 
   const handleAddProduct = (): void => {
-    if (formData.name && formData.stock && formData.price) {
+    if (formData.nome && formData.valor && formData.dataEntrada && formData.dataValidade) {
+      const now = new Date().toISOString();
+      // Converte valor formatado brasileiro para número (remove pontos e substitui vírgula por ponto)
+      const valorNumerico = parseFloat(formData.valor.replace(/\./g, '').replace(',', '.'));
       const newProduct: Product = {
         id: Math.max(...products.map(p => p.id), 0) + 1,
-        name: formData.name,
-        category: formData.category || 'Outros',
-        stock: parseInt(formData.stock),
-        minStock: parseInt(formData.minStock) || 10,
-        price: parseFloat(formData.price),
-        lastUpdate: new Date().toISOString().split('T')[0]
+        nome: formData.nome,
+        valor: valorNumerico,
+        dataEntrada: formData.dataEntrada ? new Date(formData.dataEntrada).toISOString() : '',
+        dataSaida: formData.dataSaida ? new Date(formData.dataSaida).toISOString() : undefined,
+        dataValidade: formData.dataValidade,
+        createdAt: now,
+        updatedAt: now
       };
       setProducts([...products, newProduct]);
       resetForm();
@@ -54,27 +140,34 @@ export const useInventory = (initialProducts: Product[] = INITIAL_PRODUCTS) => {
 
   const handleEditProduct = (product: Product): void => {
     setEditingProduct(product.id);
+    // Converte valor numérico para formato brasileiro
+    const valorFormatado = product.valor.toLocaleString('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
     setFormData({
-      name: product.name,
-      category: product.category,
-      stock: product.stock.toString(),
-      minStock: product.minStock.toString(),
-      price: product.price.toString()
+      nome: product.nome,
+      valor: valorFormatado,
+      dataEntrada: formatToDateTimeLocal(product.dataEntrada),
+      dataSaida: product.dataSaida ? formatToDateTimeLocal(product.dataSaida) : '',
+      dataValidade: product.dataValidade
     });
   };
 
   const handleUpdateProduct = (): void => {
     if (!editingProduct) return;
+    // Converte valor formatado brasileiro para número (remove pontos e substitui vírgula por ponto)
+    const valorNumerico = parseFloat(formData.valor.replace(/\./g, '').replace(',', '.'));
     setProducts(products.map(p => 
       p.id === editingProduct 
         ? { 
             ...p, 
-            name: formData.name,
-            category: formData.category,
-            stock: parseInt(formData.stock), 
-            minStock: parseInt(formData.minStock), 
-            price: parseFloat(formData.price),
-            lastUpdate: new Date().toISOString().split('T')[0]
+            nome: formData.nome,
+            valor: valorNumerico,
+            dataEntrada: formData.dataEntrada ? new Date(formData.dataEntrada).toISOString() : '',
+            dataSaida: formData.dataSaida ? new Date(formData.dataSaida).toISOString() : undefined,
+            dataValidade: formData.dataValidade,
+            updatedAt: new Date().toISOString()
           }
         : p
     ));

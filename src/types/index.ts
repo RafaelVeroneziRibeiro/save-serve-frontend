@@ -1,13 +1,14 @@
 // src/types/index.ts
 
 export interface Product {
-  id: number;
-  name: string;
-  category: string;
-  stock: number;
-  minStock: number;
-  price: number;
-  lastUpdate: string;
+  id: number; // Frontend usa number, mas representa Long do backend
+  nome: string;
+  valor: number;
+  dataEntrada: string;
+  dataSaida?: string;
+  dataValidade: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Alert {
@@ -27,11 +28,11 @@ export interface FeatureFlags {
 }
 
 export interface FormData {
-  name: string;
-  category: string;
-  stock: string;
-  minStock: string;
-  price: string;
+  nome: string;
+  valor: string;
+  dataEntrada: string;
+  dataSaida: string;
+  dataValidade: string;
 }
 
 export type TabType = 'home' | 'stock' | 'manage' | 'alerts' | 'flags';

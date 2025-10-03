@@ -43,7 +43,7 @@ const HomeTab: React.FC<HomeTabProps> = ({ products, totalValue, lowStockCount }
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-slate-500 font-medium">Estoque Baixo</p>
+              <p className="text-sm text-slate-500 font-medium">Produtos Vencendo</p>
               <p className="text-3xl font-bold text-red-600 mt-1">{lowStockCount}</p>
             </div>
             <div className="bg-red-100 p-3 rounded-lg">
@@ -59,12 +59,16 @@ const HomeTab: React.FC<HomeTabProps> = ({ products, totalValue, lowStockCount }
           {products.slice(-5).reverse().map(product => (
             <div key={product.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
               <div>
-                <p className="font-medium text-slate-800">{product.name}</p>
-                <p className="text-sm text-slate-500">{product.category}</p>
+                <p className="font-medium text-slate-800">{product.nome}</p>
+                <p className="text-sm text-slate-500">
+                  Entrada: {new Date(product.dataEntrada).toLocaleDateString('pt-BR')}
+                </p>
               </div>
               <div className="text-right">
-                <p className="font-bold text-slate-800">{product.stock} un.</p>
-                <p className="text-sm text-green-600">R$ {product.price.toFixed(2)}</p>
+                <p className="font-bold text-slate-800">
+                  Validade: {new Date(product.dataValidade).toLocaleDateString('pt-BR')}
+                </p>
+                <p className="text-sm text-green-600">R$ {product.valor.toFixed(2)}</p>
               </div>
             </div>
           ))}
