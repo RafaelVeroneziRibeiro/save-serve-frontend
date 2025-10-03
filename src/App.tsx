@@ -8,7 +8,8 @@ import StockTab from './components/tabs/StockTab';
 import ManageTab from './components/tabs/ManageTab';
 import AlertsTab from './components/tabs/AlertsTab';
 import FeatureFlagsTab from './components/tabs/FeatureFlagsTab';
-import PricingAIPanel from './components/tabs/PricingAiPanel'; // ADICIONE
+import PricingAIPanel from './components/tabs/PricingAiPanel';
+import SalesAnalysisTab from './components/tabs/SalesAnalysisTab';
 
 import AuthPage from './pages/Login';
 
@@ -39,8 +40,10 @@ const InventoryDashboard: React.FC<{ onLogout: () => void; userName: string; }> 
         return <ManageTab {...inventory} />;
       case 'alerts':
         return <AlertsTab alerts={inventory.alerts} />;
-      case 'pricing':  // ADICIONE
+      case 'pricing':
         return <PricingAIPanel products={inventory.products} />;
+      case 'sales':
+        return <SalesAnalysisTab products={inventory.products} />;
       case 'flags': 
         return <FeatureFlagsTab featureFlags={featureFlags} toggleFlag={toggleFlag} />;
       default:
