@@ -5,7 +5,7 @@ const mockUsers = [
     {
         name: 'Admin do Sistema',
         email: 'admin@mercado.com',
-        password: '123'
+        password: '12345678'
     }
 ];
 
