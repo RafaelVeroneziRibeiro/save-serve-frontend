@@ -15,6 +15,58 @@ import {
   PricingSuggestion,
 } from "../../services/pricingAi";
 
+// ==========================================================
+// FUNÇÃO AUXILIAR PARA CÁLCULO DE DESCONTO DINÂMICO (CORRIGIDO!)
+// Garante maior variabilidade do desconto (5% a 30%)
+// ==========================================================
+const calculateDynamicDiscount = (daysUntilExpiration: number, quantity: number): number => {
+  const MIN_DISCOUNT = 5;
+  const MAX_DISCOUNT = 30;
+
+  // 1. Fator de Urgência (Validade):
+  // Desconto máximo (1.0) se <= 30 dias. Desconto mínimo (0.0) se >= 180 dias.
+  const MAX_DAYS_FOR_FULL_URGENCY = 30;
+  const MIN_DAYS_FOR_ZERO_URGENCY = 180;
+  
+  let urgencyFactor = 0;
+  if (daysUntilExpiration <= MAX_DAYS_FOR_FULL_URGENCY) {
+    urgencyFactor = 1.0;
+  } else if (daysUntilExpiration < MIN_DAYS_FOR_ZERO_URGENCY) {
+    // Escala linear de 1.0 (em 30 dias) para 0.0 (em 180 dias)
+    urgencyFactor = 1.0 - (daysUntilExpiration - MAX_DAYS_FOR_FULL_URGENCY) / (MIN_DAYS_FOR_ZERO_URGENCY - MAX_DAYS_FOR_FULL_URGENCY);
+  } else {
+    urgencyFactor = 0.0;
+  }
+  urgencyFactor = Math.max(0, Math.min(1.0, urgencyFactor)); // Garante que esteja entre 0 e 1
+
+  // 2. Fator de Estoque (Quantidade):
+  const MAX_QTY_FOR_FULL_STOCK_IMPACT = 10;
+  const MIN_QTY_FOR_ZERO_STOCK_IMPACT = 200;
+
+  let stockFactor = 0;
+  if (quantity <= MAX_QTY_FOR_FULL_STOCK_IMPACT) {
+    stockFactor = 1.0;
+  } else if (quantity < MIN_QTY_FOR_ZERO_STOCK_IMPACT) {
+    // Escala linear de 1.0 (em 10 unidades) para 0.0 (em 200 unidades)
+    stockFactor = 1.0 - (quantity - MAX_QTY_FOR_FULL_STOCK_IMPACT) / (MIN_QTY_FOR_ZERO_STOCK_IMPACT - MAX_QTY_FOR_ZERO_STOCK_IMPACT);
+  } else {
+    stockFactor = 0.0;
+  }
+  stockFactor = Math.max(0, Math.min(1.0, stockFactor)); // Garante que esteja entre 0 e 1
+  
+  // 3. Ponderação dos fatores (Exemplo: Validade 60%, Estoque 40%)
+  const WEIGHT_URGENCY = 0.6;
+  const WEIGHT_STOCK = 0.4;
+  const weightedFactor = (urgencyFactor * WEIGHT_URGENCY) + (stockFactor * WEIGHT_STOCK);
+  
+  // 4. Cálculo do Desconto Final (entre 5% e 30%)
+  const discountRange = MAX_DISCOUNT - MIN_DISCOUNT;
+  const finalDiscount = MIN_DISCOUNT + (discountRange * weightedFactor);
+
+  // Arredonda para o inteiro mais próximo e garante o limite (5-30%)
+  return Math.min(MAX_DISCOUNT, Math.max(MIN_DISCOUNT, Math.round(finalDiscount)));
+};
+
 interface PricingAIPanelProps {
   products: any[];
 }
@@ -33,15 +85,28 @@ const PricingAIPanel: React.FC<PricingAIPanelProps> = ({ products }) => {
     setBulkAnalysis(null);
 
     try {
+      const daysAteVencer = Math.ceil(
+        (new Date(product.dataValidade).getTime() - new Date().getTime()) /
+          (1000 * 60 * 60 * 24)
+      );
+      
+      // ==========================================================
+      // UTILIZANDO A LÓGICA DE DESCONTO DINÂMICO AQUI 
+      // ==========================================================
+      const dynamicDiscountPercentage = calculateDynamicDiscount(
+          daysAteVencer, 
+          product.quantidade || 50
+      );
+      
+      // Simulação do preço sugerido baseado no desconto dinâmico
+      const suggestedPrice = product.valor * (1 - dynamicDiscountPercentage / 100);
+
       const pricingData: ProductPricingData = {
         nome: product.nome,
         precoAtual: product.valor,
         precoCusto: product.valor * 0.6,
         quantidade: product.quantidade || 50,
-        diasAteVencer: Math.ceil(
-          (new Date(product.dataValidade).getTime() - new Date().getTime()) /
-            (1000 * 60 * 60 * 24)
-        ),
+        diasAteVencer: daysAteVencer,
         categoria: product.categoria || "Geral",
         vendas30dias: Math.floor(Math.random() * 100),
         precosConcorrencia: [
@@ -51,8 +116,24 @@ const PricingAIPanel: React.FC<PricingAIPanelProps> = ({ products }) => {
         ],
       };
 
+      // Chama o serviço de IA e passa os dados (mantendo a simulação do retorno)
+      
       const result = await analyzePricingWithAI(pricingData);
-      setSuggestion(result);
+      
+      // **Ajuste na simulação do resultado para refletir o desconto dinâmico**
+      const newSuggestion: PricingSuggestion = {
+        ...result, 
+        precoSugerido: suggestedPrice, // Usa o preço calculado com desconto dinâmico
+        precoAtual: product.valor,
+        descontoPercentual: dynamicDiscountPercentage, // Usa o desconto dinâmico
+        // Classificação de Urgência e Estratégia baseada no DESCONTO (para visualização)
+        urgencia: dynamicDiscountPercentage >= 20 ? 'alta' : dynamicDiscountPercentage >= 10 ? 'media' : 'baixa',
+        estrategia: dynamicDiscountPercentage >= 20 ? 'urgente' : dynamicDiscountPercentage >= 10 ? 'promocional' : 'competitivo',
+        razao: `Ajuste de preço de ${dynamicDiscountPercentage}% sugerido com base na validade (${daysAteVencer} dias restantes) e estoque (${product.quantidade || 50} unidades).`,
+        impactoEstimado: `Aumento de vendas esperado de ${Math.floor(dynamicDiscountPercentage * 1.5)}% para maximizar o lucro antes do vencimento.`,
+      }
+      
+      setSuggestion(newSuggestion);
     } catch (error) {
       console.error("Erro:", error);
     } finally {
@@ -102,13 +183,17 @@ const PricingAIPanel: React.FC<PricingAIPanelProps> = ({ products }) => {
     }
   };
 
-  const urgentProducts = products
-    .filter((p) => {
-      const days = Math.ceil(
-        (new Date(p.dataValidade).getTime() - new Date().getTime()) /
-          (1000 * 60 * 60 * 24)
-      );
-      return days <= 30;
+  // ==========================================================
+  // CORREÇÃO: Mostrar 10 produtos mais relevantes (críticos e promocionais).
+  // Ordena por dias restantes (do mais urgente para o menos)
+  // ==========================================================
+  const relevantProducts = products
+    .sort((a, b) => {
+      const daysA = Math.ceil((new Date(a.dataValidade).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+      const daysB = Math.ceil((new Date(b.dataValidade).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+      
+      // Ordena do mais urgente para o menos
+      return daysA - daysB; 
     })
     .slice(0, 10);
 
@@ -274,7 +359,7 @@ const PricingAIPanel: React.FC<PricingAIPanelProps> = ({ products }) => {
               Ou analise produtos individuais:
             </h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {urgentProducts.map((product) => {
+              {relevantProducts.map((product) => { // Agora contém produtos críticos e promocionais
                 const days = Math.ceil(
                   (new Date(product.dataValidade).getTime() -
                     new Date().getTime()) /
@@ -300,7 +385,7 @@ const PricingAIPanel: React.FC<PricingAIPanelProps> = ({ products }) => {
                       </span>
                       <span
                         className={`${
-                          days <= 7 ? "text-red-600" : "text-orange-600"
+                          days <= 30 ? "text-red-600" : days <= 60 ? "text-orange-600" : "text-slate-600"
                         }`}
                       >
                         {days}d restantes
