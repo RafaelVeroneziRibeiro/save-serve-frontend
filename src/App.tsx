@@ -9,14 +9,24 @@ import ManageTab from './components/tabs/ManageTab';
 import AlertsTab from './components/tabs/AlertsTab';
 import FeatureFlagsTab from './components/tabs/FeatureFlagsTab';
 
-// Importando a nova página de autenticação
 import AuthPage from './pages/Login';
 
 // Componente do Dashboard de Inventário
 const InventoryDashboard: React.FC<{ onLogout: () => void; userName: string; }> = ({ onLogout, userName }) => {
   const [activeTab, setActiveTab] = useState<TabType>('home');
   const inventory = useInventory();
-  // ... outras lógicas como feature flags poderiam ficar aqui
+  
+  const [featureFlags, setFeatureFlags] = useState<FeatureFlags>({
+    autoAlerts: true,
+    dynamicPricing: false,
+    lowStockNotifications: true,
+    priceHistory: true,
+    bulkOperations: false
+  });
+
+  const toggleFlag = (flag: keyof FeatureFlags): void => {
+    setFeatureFlags(prevFlags => ({ ...prevFlags, [flag]: !prevFlags[flag] }));
+  };
 
   const renderActiveTab = () => {
     switch (activeTab) {
@@ -28,8 +38,8 @@ const InventoryDashboard: React.FC<{ onLogout: () => void; userName: string; }> 
         return <ManageTab {...inventory} />;
       case 'alerts':
         return <AlertsTab alerts={inventory.alerts} />;
-      // case 'flags':
-      //   return <FeatureFlagsTab featureFlags={featureFlags} toggleFlag={toggleFlag} />;
+      case 'flags': 
+        return <FeatureFlagsTab featureFlags={featureFlags} toggleFlag={toggleFlag} />;
       default:
         return <h2>Tab não encontrada</h2>;
     }
@@ -39,9 +49,9 @@ const InventoryDashboard: React.FC<{ onLogout: () => void; userName: string; }> 
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       <Header 
         lowStockCount={inventory.lowStockCount} 
-        showNotifications={true} // Simplificado por agora
+        showNotifications={featureFlags.lowStockNotifications} 
         onLogout={onLogout}
-        userName={userName} // Passando o nome do usuário para o Header
+        userName={userName}
       />
       <Navigation 
         activeTab={activeTab} 
