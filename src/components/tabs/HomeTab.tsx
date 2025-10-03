@@ -1,8 +1,175 @@
+// ============================================
+// 📁 src/services/geminiService.ts
+// Serviço de IA com Google Gemini
+// ============================================
+
+import { GoogleGenerativeAI } from '@google/generative-ai';
+
+const genAI = new GoogleGenerativeAI('AIzaSyBDq25Gn5b9tRx5lhpAXUni64hPTJsX5gM');
+
+export interface AIAnalysis {
+  resumo: string;
+  alertas: Array<{
+    tipo: 'critico' | 'alerta' | 'aviso' | 'info';
+    titulo: string;
+    mensagem: string;
+    acao: string;
+  }>;
+  metricas: {
+    vencidos: number;
+    criticos: number;
+    avisos: number;
+    estoqueBaixo: number;
+  };
+  valorEmRisco: number;
+}
+
+export async function analyzeInventoryWithAI(products: any[]): Promise<AIAnalysis> {
+  try {
+    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+    
+    const hoje = new Date().toISOString().split('T')[0];
+    
+    const prompt = `
+Você é um especialista em gestão de estoque de supermercados. Analise o seguinte inventário e forneça insights:
+
+Data de hoje: ${hoje}
+
+Produtos:
+${JSON.stringify(products.map(p => ({
+  nome: p.nome,
+  quantidade: p.quantidade,
+  valor: p.valor,
+  dataValidade: p.dataValidade,
+  dataEntrada: p.dataEntrada
+})), null, 2)}
+
+IMPORTANTE: Retorne APENAS um objeto JSON válido, sem texto adicional, seguindo exatamente esta estrutura:
+
+{
+  "resumo": "Análise geral do estoque em uma frase",
+  "alertas": [
+    {
+      "tipo": "critico",
+      "titulo": "Título do alerta",
+      "mensagem": "Descrição detalhada",
+      "acao": "Ação recomendada"
+    }
+  ],
+  "metricas": {
+    "vencidos": 0,
+    "criticos": 0,
+    "avisos": 0,
+    "estoqueBaixo": 0
+  },
+  "valorEmRisco": 0
+}
+
+Tipos de alerta:
+- "critico": produtos já vencidos
+- "alerta": produtos vencendo em até 7 dias
+- "aviso": produtos vencendo em 8-30 dias ou estoque baixo
+- "info": recomendações gerais
+
+Calcule:
+1. Produtos vencidos (dataValidade < hoje)
+2. Produtos críticos (vencendo em 7 dias)
+3. Produtos em aviso (vencendo em 30 dias)
+4. Produtos com estoque baixo (quantidade < 10)
+5. Valor em risco (soma do valor dos produtos vencidos e críticos)
+`;
+
+    const result = await model.generateContent(prompt);
+    const text = result.response.text();
+    
+    // Remove markdown se houver
+    const jsonText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    
+    const analysis = JSON.parse(jsonText);
+    return analysis;
+    
+  } catch (error) {
+    console.error('Erro ao analisar com IA:', error);
+    
+    // Fallback: análise básica sem IA
+    return generateFallbackAnalysis(products);
+  }
+}
+
+function generateFallbackAnalysis(products: any[]): AIAnalysis {
+  const hoje = new Date();
+  const seteDias = new Date(hoje.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const trintaDias = new Date(hoje.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+  const vencidos = products.filter(p => new Date(p.dataValidade) < hoje);
+  const criticos = products.filter(p => {
+    const val = new Date(p.dataValidade);
+    return val >= hoje && val <= seteDias;
+  });
+  const avisos = products.filter(p => {
+    const val = new Date(p.dataValidade);
+    return val > seteDias && val <= trintaDias;
+  });
+  const estoqueBaixo = products.filter(p => p.quantidade < 10);
+
+  const valorEmRisco = [...vencidos, ...criticos].reduce(
+    (sum, p) => sum + p.valor * p.quantidade, 0
+  );
+
+  const alertas = [];
+  
+  if (vencidos.length > 0) {
+    alertas.push({
+      tipo: 'critico' as const,
+      titulo: `${vencidos.length} produto(s) vencido(s)`,
+      mensagem: `Remova: ${vencidos.map(p => p.nome).join(', ')}`,
+      acao: 'Remover do estoque imediatamente'
+    });
+  }
+
+  if (criticos.length > 0) {
+    alertas.push({
+      tipo: 'alerta' as const,
+      titulo: `${criticos.length} produto(s) vencendo em 7 dias`,
+      mensagem: `Atenção: ${criticos.map(p => p.nome).join(', ')}`,
+      acao: 'Fazer promoção urgente'
+    });
+  }
+
+  if (estoqueBaixo.length > 0) {
+    alertas.push({
+      tipo: 'aviso' as const,
+      titulo: `${estoqueBaixo.length} produto(s) com estoque baixo`,
+      mensagem: `Reabastecer: ${estoqueBaixo.slice(0, 3).map(p => p.nome).join(', ')}`,
+      acao: 'Solicitar reposição'
+    });
+  }
+
+  return {
+    resumo: vencidos.length > 0 
+      ? `Atenção: ${vencidos.length} produto(s) vencido(s) requer ação imediata!`
+      : 'Estoque em condições normais.',
+    alertas,
+    metricas: {
+      vencidos: vencidos.length,
+      criticos: criticos.length,
+      avisos: avisos.length,
+      estoqueBaixo: estoqueBaixo.length
+    },
+    valorEmRisco
+  };
+}
+
+
+// ============================================
+// 📁 src/components/tabs/HomeTab.tsx
+// HomeTab com IA integrada
+// ============================================
+
 import React, { useState, useEffect } from 'react';
 import { Package, DollarSign, AlertTriangle, Brain, TrendingDown, Calendar, ShoppingCart, Loader2 } from 'lucide-react';
 import { Product } from '../../types';
-import { analyzeInventoryWithAI, AIAnalysis } from '../../services/aiService';
-import { formatCurrency } from '../../utils/dataTransformer'
+
 
 interface HomeTabProps {
   products: Product[];
@@ -77,7 +244,7 @@ const HomeTab: React.FC<HomeTabProps> = ({ products, totalValue, lowStockCount }
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-slate-500 font-medium">Valor Total</p>
-              <p className="text-3xl font-bold text-green-600 mt-1">{formatCurrency(totalValue)}</p>
+              <p className="text-3xl font-bold text-green-600 mt-1">R$ {totalValue.toFixed(2)}</p>
             </div>
             <div className="bg-green-100 p-3 rounded-lg">
               <DollarSign className="text-green-600" size={24} />
@@ -90,7 +257,7 @@ const HomeTab: React.FC<HomeTabProps> = ({ products, totalValue, lowStockCount }
             <div>
               <p className="text-sm text-slate-500 font-medium">Valor em Risco</p>
               <p className="text-3xl font-bold text-red-600 mt-1">
-                {aiAnalysis ? formatCurrency(aiAnalysis.valorEmRisco) : 'R$ 0,00'}
+                R$ {aiAnalysis ? aiAnalysis.valorEmRisco.toFixed(2) : '0.00'}
               </p>
               <p className="text-xs text-slate-500 mt-1">Análise por IA</p>
             </div>
