@@ -2,7 +2,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const genAI = new GoogleGenerativeAI('AIzaSyBDq25Gn5b9tRx5lhpAXUni64hPTJsX5gM');
 
-export interface SalesData {                                                                                                                                                                                                      
+export interface SalesData {
   produto: string;
   quantidadeVendida: number;
   valorVenda: number;
@@ -13,7 +13,6 @@ export interface SalesData {
   metodoPagamento: 'dinheiro' | 'cartao' | 'pix';
 }
 
-// Interface para dados reais de vendas
 export interface RealSalesData {
   id: number;
   productId: number;
@@ -21,12 +20,12 @@ export interface RealSalesData {
   quantity: number;
   unitPrice: number;
   totalPrice: number;
-  saleDate: string;                                                                                                                   
+  saleDate: string;
   customerName?: string;
   paymentMethod: 'dinheiro' | 'cartao' | 'pix';
   createdAt: string;
 }
-                                                                                  
+
 export interface SalesTrend {
   periodo: string;
   vendas: number;
@@ -96,7 +95,6 @@ export async function analyzeSalesWithAI(salesData: SalesData[] | RealSalesData[
     
     const hoje = new Date().toLocaleDateString('pt-BR');
     
-    // FOCAR APENAS EM PRODUTOS VENDIDOS (com data de saída)
     const produtosVendidos = products.filter(p => p.dataSaida);
     console.log('🛒 Produtos vendidos encontrados:', produtosVendidos.length);
     
@@ -104,18 +102,20 @@ export async function analyzeSalesWithAI(salesData: SalesData[] | RealSalesData[
       throw new Error('Nenhum produto vendido encontrado para análise');
     }
     
-    // Preparar dados para análise baseados APENAS nos produtos vendidos
+    const totalUnidadesVendidas = produtosVendidos.reduce((sum, p) => sum + p.quantidade, 0);
+    const receitaTotal = produtosVendidos.reduce((sum, p) => sum + (p.valor * p.quantidade), 0);
+    const totalTransacoes = produtosVendidos.length;
+    
     const dadosVendas = produtosVendidos.map(produto => ({
       produto: produto.nome,
       quantidade: produto.quantidade,
-      valor: produto.valor * produto.quantidade, // Valor total da venda
+      valor: produto.valor * produto.quantidade,
       data: produto.dataSaida,
       categoria: 'Geral',
-      margem: 0.3, // Margem padrão estimada
-      pagamento: 'dinheiro' // Padrão, pois não temos essa info nos produtos
+      margem: 0.3,
+      pagamento: 'dinheiro'
     }));
 
-    // Detalhes dos produtos vendidos para análise
     const detalhesProdutosVendidos = produtosVendidos.map(p => ({
       nome: p.nome,
       valor: p.valor,
@@ -127,7 +127,6 @@ export async function analyzeSalesWithAI(salesData: SalesData[] | RealSalesData[
       diasAteVencer: Math.ceil((new Date(p.dataValidade).getTime() - new Date(p.dataSaida!).getTime()) / (1000 * 60 * 60 * 24))
     }));
 
-    // Produtos em estoque (sem data de saída) - apenas para contexto
     const estoqueAtual = products.filter(p => !p.dataSaida).map(p => ({
       nome: p.nome,
       valor: p.valor,
@@ -137,36 +136,36 @@ export async function analyzeSalesWithAI(salesData: SalesData[] | RealSalesData[
     }));
 
     const prompt = `
-Você é um especialista em análise de vendas e comportamento do consumidor para supermercados. Analise APENAS os produtos que foram vendidos (têm data de saída):
+Você é um especialista em análise de vendas e comportamento do consumidor para supermercados.
 
 DATA ATUAL: ${hoje}
 
-PRODUTOS VENDIDOS (${detalhesProdutosVendidos.length} produtos que saíram do estoque):
+IMPORTANTE - CONTAGEM DE VENDAS:
+- Total de UNIDADES vendidas: ${totalUnidadesVendidas} unidades
+- Total de TRANSAÇÕES: ${totalTransacoes} vendas
+- Receita total: R$ ${receitaTotal.toFixed(2)}
+- USE ${totalUnidadesVendidas} como valor de "vendas" nas métricas
+
+PRODUTOS VENDIDOS:
 ${JSON.stringify(detalhesProdutosVendidos, null, 2)}
 
-DADOS DE VENDAS BASEADOS NOS PRODUTOS VENDIDOS (${dadosVendas.length} vendas):
+DADOS DE VENDAS:
 ${JSON.stringify(dadosVendas, null, 2)}
 
-ESTOQUE ATUAL (produtos não vendidos - ${estoqueAtual.length} produtos):
+ESTOQUE ATUAL:
 ${JSON.stringify(estoqueAtual, null, 2)}
 
-IMPORTANTE: 
-- Use APENAS os produtos que têm data de saída (foram vendidos)
-- NÃO invente ou adicione dados fictícios
-- Foque na análise dos produtos que realmente saíram do estoque
-- Considere o tempo que cada produto ficou no estoque antes de sair
-
-IMPORTANTE: Retorne APENAS um JSON válido seguindo esta estrutura exata:
+Retorne APENAS um JSON válido seguindo esta estrutura:
 
 {
-  "resumo": "Análise executiva em 2-3 frases sobre o desempenho geral",
+  "resumo": "Análise executiva em 2-3 frases",
   "tendencias": [
     {
       "periodo": "semana 1",
-      "vendas": 0,
-      "receita": 0,
-      "produtosVendidos": 0,
-      "ticketMedio": 0
+      "vendas": ${totalUnidadesVendidas},
+      "receita": ${receitaTotal.toFixed(2)},
+      "produtosVendidos": ${totalUnidadesVendidas},
+      "ticketMedio": ${(receitaTotal / totalTransacoes).toFixed(2)}
     }
   ],
   "produtosTop": [
@@ -177,37 +176,37 @@ IMPORTANTE: Retorne APENAS um JSON válido seguindo esta estrutura exata:
       "receita": 0,
       "margemMedia": 0,
       "tendencia": "crescendo|estavel|declinando",
-      "sazonalidade": "descrição da sazonalidade",
-      "recomendacao": "recomendação específica"
+      "sazonalidade": "descrição",
+      "recomendacao": "recomendação"
     }
   ],
   "insightsClientes": [
     {
       "segmento": "tipo de cliente",
-      "comportamento": "descrição do comportamento",
-      "preferencias": ["preferência 1", "preferência 2"],
+      "comportamento": "descrição",
+      "preferencias": ["pref1", "pref2"],
       "valorMedio": 0,
       "frequencia": "alta|media|baixa",
-      "recomendacao": "recomendação para este segmento"
+      "recomendacao": "recomendação"
     }
   ],
   "oportunidades": [
     {
       "tipo": "produto|categoria|cliente|promocao",
-      "titulo": "título da oportunidade",
-      "descricao": "descrição detalhada",
+      "titulo": "título",
+      "descricao": "descrição",
       "impacto": "alto|medio|baixo",
-      "acao": "ação específica recomendada",
+      "acao": "ação",
       "potencialGanho": 0
     }
   ],
   "metricas": {
-    "vendasTotal": 0,
-    "receitaTotal": 0,
-    "ticketMedio": 0,
+    "vendasTotal": ${totalUnidadesVendidas},
+    "receitaTotal": ${receitaTotal.toFixed(2)},
+    "ticketMedio": ${(receitaTotal / totalTransacoes).toFixed(2)},
     "crescimento": 0,
     "produtosMaisVendidos": 0,
-    "categoriaTop": "nome da categoria"
+    "categoriaTop": "Geral"
   },
   "previsoes": {
     "proximaSemana": 0,
@@ -217,30 +216,20 @@ IMPORTANTE: Retorne APENAS um JSON válido seguindo esta estrutura exata:
   }
 }
 
-ANÁLISE DEVE CONSIDERAR:
-1. Padrões de compra por dia da semana e horário
-2. Correlação entre produtos (o que é comprado junto)
-3. Sazonalidade e tendências de mercado
-4. Comportamento por método de pagamento
-5. Produtos com estoque baixo vs alta demanda
-6. Oportunidades de cross-selling
-7. Segmentação de clientes por valor e frequência
-8. Previsão de demanda baseada em histórico
-9. Otimização de preços baseada em elasticidade
-10. Estratégias de retenção de clientes
-11. TEMPO NO ESTOQUE: Analise quantos dias os produtos ficaram no estoque antes de sair
-12. ROTATIVIDADE: Identifique produtos que saem rápido vs produtos que ficam muito tempo
-13. PADRÕES TEMPORAIS: Analise se há horários/dias específicos com mais saídas
-14. EFICIÊNCIA: Produtos que saem próximo ao vencimento vs produtos que saem rapidamente
-
-Seja específico e acionável nas recomendações.
+CRÍTICO: Use ${totalUnidadesVendidas} como valor de vendasTotal nas métricas.
 `;
 
     const result = await model.generateContent(prompt);
     const text = result.response.text();
     const jsonText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     
-    return JSON.parse(jsonText);
+    const parsed = JSON.parse(jsonText);
+    
+    parsed.metricas.vendasTotal = totalUnidadesVendidas;
+    parsed.metricas.receitaTotal = receitaTotal;
+    parsed.metricas.ticketMedio = receitaTotal / totalTransacoes;
+    
+    return parsed;
     
   } catch (error) {
     console.error('Erro na análise de vendas IA:', error);
@@ -249,13 +238,11 @@ Seja específico e acionável nas recomendações.
 }
 
 function generateFallbackSalesAnalysis(products: any[]): SalesAnalysis {
-  // FOCAR APENAS EM PRODUTOS VENDIDOS (com data de saída)
-  
   const produtosVendidos = products.filter(p => p.dataSaida);
   
   if (produtosVendidos.length === 0) {
     return {
-      resumo: 'Nenhum produto vendido encontrado para análise. Registre produtos com data de saída para obter insights.',
+      resumo: 'Nenhum produto vendido encontrado para análise.',
       tendencias: [],
       produtosTop: [],
       insightsClientes: [],
@@ -277,27 +264,18 @@ function generateFallbackSalesAnalysis(products: any[]): SalesAnalysis {
     };
   }
   
-  // Calcular métricas baseadas APENAS nos produtos vendidos
+  const totalUnidadesVendidas = produtosVendidos.reduce((sum, p) => sum + p.quantidade, 0);
   const totalTransacoes = produtosVendidos.length;
   const receitaTotal = produtosVendidos.reduce((sum, p) => sum + (p.valor * p.quantidade), 0);
   const ticketMedio = receitaTotal / totalTransacoes;
-  
-  // Calcular tempo médio no estoque
-  const temposEstoque = produtosVendidos.map(p => {
-    const entrada = new Date(p.dataEntrada);
-    const saida = new Date(p.dataSaida);
-    return Math.ceil((saida.getTime() - entrada.getTime()) / (1000 * 60 * 60 * 24));
-  });
-  const tempoMedioEstoque = temposEstoque.reduce((sum, tempo) => sum + tempo, 0) / temposEstoque.length;
 
-  // Agrupar produtos vendidos por nome
-  const produtosMap = new Map<string, { vendas: number; receita: number; margem: number }>();
+  const produtosMap = new Map();
   produtosVendidos.forEach(produto => {
     const atual = produtosMap.get(produto.nome) || { vendas: 0, receita: 0, margem: 0 };
     produtosMap.set(produto.nome, {
       vendas: atual.vendas + produto.quantidade,
       receita: atual.receita + (produto.valor * produto.quantidade),
-      margem: 0.3 // Margem padrão
+      margem: 0.3
     });
   });
 
@@ -315,17 +293,16 @@ function generateFallbackSalesAnalysis(products: any[]): SalesAnalysis {
     .sort((a, b) => b.vendas - a.vendas)
     .slice(0, 5);
 
-  const resumoBase = `Análise de ${totalTransacoes} produtos vendidos mostra receita total de R$ ${receitaTotal.toFixed(2)} com ticket médio de R$ ${ticketMedio.toFixed(2)}.`;
-  const resumoCompleto = `${resumoBase} Produtos ficaram em média ${tempoMedioEstoque.toFixed(0)} dias no estoque antes de sair.`;
+  const resumo = `Análise de ${totalUnidadesVendidas} unidades vendidas em ${totalTransacoes} transações mostrando receita de R$ ${receitaTotal.toFixed(2)}.`;
 
   return {
-    resumo: resumoCompleto,
+    resumo,
     tendencias: [
       {
-        periodo: 'Última semana',
-        vendas: Math.floor(totalTransacoes * 0.3),
-        receita: Math.floor(receitaTotal * 0.3),
-        produtosVendidos: Math.floor(totalTransacoes * 0.3),
+        periodo: 'Período Atual',
+        vendas: totalUnidadesVendidas,
+        receita: receitaTotal,
+        produtosVendidos: totalUnidadesVendidas,
         ticketMedio: ticketMedio
       }
     ],
@@ -343,15 +320,15 @@ function generateFallbackSalesAnalysis(products: any[]): SalesAnalysis {
     oportunidades: [
       {
         tipo: 'promocao',
-        titulo: 'Promoção de produtos com estoque alto',
-        descricao: 'Produtos com estoque elevado podem ser promovidos para aumentar rotatividade',
+        titulo: 'Promoção de produtos',
+        descricao: 'Criar estratégias para aumentar vendas',
         impacto: 'medio',
-        acao: 'Criar promoções semanais',
+        acao: 'Implementar promoções',
         potencialGanho: receitaTotal * 0.1
       }
     ],
     metricas: {
-      vendasTotal: totalTransacoes, // Número de transações, não unidades
+      vendasTotal: totalUnidadesVendidas,
       receitaTotal,
       ticketMedio,
       crescimento: 0,
@@ -367,7 +344,6 @@ function generateFallbackSalesAnalysis(products: any[]): SalesAnalysis {
   };
 }
 
-// Função para gerar dados mockados de vendas
 export function generateMockSalesData(products: any[]): SalesData[] {
   const categorias = ['Alimentos', 'Bebidas', 'Limpeza', 'Higiene', 'Padaria'];
   const metodosPagamento: ('dinheiro' | 'cartao' | 'pix')[] = ['dinheiro', 'cartao', 'pix'];
@@ -376,18 +352,16 @@ export function generateMockSalesData(products: any[]): SalesData[] {
   const vendas: SalesData[] = [];
   const hoje = new Date();
   
-  // Gerar vendas dos últimos 30 dias
   for (let i = 0; i < 30; i++) {
     const data = new Date(hoje);
     data.setDate(data.getDate() - i);
     
-    // 3-8 vendas por dia
     const vendasDoDia = Math.floor(Math.random() * 6) + 3;
     
     for (let j = 0; j < vendasDoDia; j++) {
       const produto = products[Math.floor(Math.random() * products.length)];
       const quantidade = Math.floor(Math.random() * 5) + 1;
-      const margem = 0.3 + Math.random() * 0.4; // 30-70% de margem
+      const margem = 0.3 + Math.random() * 0.4;
       const valorVenda = produto.valor * quantidade;
       
       vendas.push({
