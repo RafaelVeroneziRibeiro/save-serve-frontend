@@ -1,8 +1,19 @@
 // src/components/layout/Navigation.tsx
 
-import React from 'react';
-import { Home, Box, Edit2, AlertTriangle, Settings, DollarSign, BarChart3, ShoppingCart } from 'lucide-react';
-import { TabType } from '../../types';
+import React from "react";
+import {
+  Home,
+  Box,
+  Edit2,
+  AlertTriangle,
+  Settings,
+  DollarSign,
+  BarChart3,
+  ShoppingCart,
+  Apple,
+} from "lucide-react";
+import { TabType } from "../../types";
+import FruitAnalysisPage from "components/tabs/FruitAnalysesPage";
 
 interface NavigationProps {
   activeTab: TabType;
@@ -10,14 +21,19 @@ interface NavigationProps {
 }
 
 const TABS = [
-  { id: 'home' as TabType, label: 'Home', icon: Home },
-  { id: 'stock' as TabType, label: 'Estoque', icon: Box },
-  { id: 'manage' as TabType, label: 'Gerenciar', icon: Edit2 },
-  { id: 'sales' as TabType, label: 'Vendas', icon: ShoppingCart },
-  { id: 'sales-analysis' as TabType, label: 'Análise IA', icon: BarChart3 },
-  { id: 'alerts' as TabType, label: 'Alertas', icon: AlertTriangle },
-  { id: 'pricing' as TabType, label: 'Precificação IA', icon: DollarSign },
-  { id: 'flags' as TabType, label: 'Feature Flags', icon: Settings }
+  { id: "home" as TabType, label: "Home", icon: Home },
+  { id: "stock" as TabType, label: "Estoque", icon: Box },
+  { id: "manage" as TabType, label: "Gerenciar", icon: Edit2 },
+  { id: "sales" as TabType, label: "Vendas", icon: ShoppingCart },
+  {
+    id: "fruit-analysis" as TabType,
+    label: "Análise de fruta",
+    icon: Apple,
+  },
+  { id: "sales-analysis" as TabType, label: "Análise IA", icon: BarChart3 },
+  { id: "alerts" as TabType, label: "Alertas", icon: AlertTriangle },
+  { id: "pricing" as TabType, label: "Precificação IA", icon: DollarSign },
+  { id: "flags" as TabType, label: "Feature Flags", icon: Settings },
 ];
 
 const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab }) => {
@@ -25,14 +41,14 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab }) => {
     <nav className="bg-white border-b border-slate-200">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex gap-1">
-          {TABS.map(tab => (
+          {TABS.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-2 px-4 py-3 font-medium transition-colors ${
                 activeTab === tab.id
-                  ? 'text-blue-600 border-b-2 border-blue-600'
-                  : 'text-slate-600 hover:text-slate-800'
+                  ? "text-blue-600 border-b-2 border-blue-600"
+                  : "text-slate-600 hover:text-slate-800"
               }`}
             >
               <tab.icon size={18} />

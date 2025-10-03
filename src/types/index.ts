@@ -44,4 +44,4 @@ export interface FormData {
   dataValidade: string; // Input type="date"
 }
 
-export type TabType = 'home' | 'stock' | 'manage' | 'alerts' | 'flags' | 'pricing' | 'sales' | 'sales-analysis';
+export type TabType = 'home' | 'stock' | 'manage' | 'alerts' | 'flags' | 'pricing' | 'sales' | 'sales-analysis' | 'fruit-analysis';
