@@ -1,13 +1,12 @@
-// src/utils/mock.ts
+// dadosMock.ts
 
 /**
- * @description Define a ESTRUTURA LOCAL para os dados brutos do mock.
- * Esta interface é usada apenas dentro deste arquivo.
+ * @description Define a estrutura de um objeto de Produto, incluindo a quantidade em estoque.
  */
 export interface Produto {
   nome: string;
   valor: number;
-  quantidade: number;
+  quantidade: number; // Nova propriedade adicionada
   data_entrada: string;
   hora_entrada: string;
   data_saida: string | null;
@@ -16,8 +15,7 @@ export interface Produto {
 }
 
 /**
- * @description Array com produtos fictícios para uso em desenvolvimento.
- * ESTES SÃO OS DADOS BRUTOS, no formato original.
+ * @description Array com 200 produtos fictícios para uso em desenvolvimento.
  */
 export const produtos: Produto[] = [
   // --- PRIMEIRA LISTA (30 PRODUTOS) ---
@@ -723,5 +721,4 @@ export const produtos: Produto[] = [
     "hora_saida": null,
     "data_validade": "26/09/2026"
   }
-  // ... e assim por diante até completar os 200 produtos.
 ]
