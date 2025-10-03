@@ -74,20 +74,24 @@ Para acessar a aplicação com dados mockados, utilize as seguintes credenciais:
 
 A estrutura de pastas foi organizada para garantir escalabilidade e fácil manutenção:
 
+```bash
 src/
-├── components/ # Componentes de UI reutilizáveis (botões, cards, etc.)
-│ ├── layout/ # Componentes estruturais (Header, Navigation)
-│ └── tabs/ # Componentes que representam cada aba da aplicação
+├── components/        # Componentes de UI reutilizáveis (botões, cards, etc.)
+│   ├── layout/        # Componentes estruturais (Header, Navigation)
+│   └── tabs/          # Componentes que representam cada aba da aplicação
 │
-├── hooks/ # Hooks customizados para encapsular lógicas de negócio
+├── hooks/             # Hooks customizados para encapsular lógicas de negócio
 │
-├── pages/ # Componentes que representam páginas completas (Login, etc.)
+├── pages/             # Componentes que representam páginas completas (Login, etc.)
 │
-├── types/ # Definições de tipos e interfaces do TypeScript
+├── types/             # Definições de tipos e interfaces do TypeScript
 │
-├── App.tsx # Componente raiz que controla a renderização
-└── main.tsx # Ponto de entrada da aplicação React
+├── App.tsx            # Componente raiz que controla a renderização
+└── main.tsx           # Ponto de entrada da aplicação React
 
+---
+
+**Hackathon AI Challenge - SECOM 2025 UFSC**
 
 ---
 
