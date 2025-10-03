@@ -13,57 +13,52 @@ import {
   analyzeBulkPricing,
   ProductPricingData,
   PricingSuggestion,
-} from "../../services/pricingAi";
+} from "../../services/pricingAi"; // Assumindo este caminho
 
 // ==========================================================
-// FUNÇÃO AUXILIAR PARA CÁLCULO DE DESCONTO DINÂMICO (CORRIGIDO!)
-// Garante maior variabilidade do desconto (5% a 30%)
+// FUNÇÃO AUXILIAR PARA CÁLCULO DE DESCONTO DINÂMICO (MANTIDA, MAS IGNORADA NA ANÁLISE COM IA)
 // ==========================================================
 const calculateDynamicDiscount = (daysUntilExpiration: number, quantity: number): number => {
   const MIN_DISCOUNT = 5;
   const MAX_DISCOUNT = 30;
 
   // 1. Fator de Urgência (Validade):
-  // Desconto máximo (1.0) se <= 30 dias. Desconto mínimo (0.0) se >= 180 dias.
-  const MAX_DAYS_FOR_FULL_URGENCY = 30;
-  const MIN_DAYS_FOR_ZERO_URGENCY = 180;
+  const MAX_DAYS_FOR_FULL_URGENCY = 15;
+  const MIN_DAYS_FOR_ZERO_URGENCY = 120;
   
   let urgencyFactor = 0;
   if (daysUntilExpiration <= MAX_DAYS_FOR_FULL_URGENCY) {
     urgencyFactor = 1.0;
   } else if (daysUntilExpiration < MIN_DAYS_FOR_ZERO_URGENCY) {
-    // Escala linear de 1.0 (em 30 dias) para 0.0 (em 180 dias)
     urgencyFactor = 1.0 - (daysUntilExpiration - MAX_DAYS_FOR_FULL_URGENCY) / (MIN_DAYS_FOR_ZERO_URGENCY - MAX_DAYS_FOR_FULL_URGENCY);
   } else {
     urgencyFactor = 0.0;
   }
-  urgencyFactor = Math.max(0, Math.min(1.0, urgencyFactor)); // Garante que esteja entre 0 e 1
+  urgencyFactor = Math.max(0, Math.min(1.0, urgencyFactor)); 
 
   // 2. Fator de Estoque (Quantidade):
-  const MAX_QTY_FOR_FULL_STOCK_IMPACT = 10;
-  const MIN_QTY_FOR_ZERO_STOCK_IMPACT = 200;
+  const MAX_QTY_FOR_FULL_STOCK_IMPACT = 5;
+  const MIN_QTY_FOR_ZERO_STOCK_IMPACT = 100;
 
   let stockFactor = 0;
   if (quantity <= MAX_QTY_FOR_FULL_STOCK_IMPACT) {
     stockFactor = 1.0;
   } else if (quantity < MIN_QTY_FOR_ZERO_STOCK_IMPACT) {
-    // Escala linear de 1.0 (em 10 unidades) para 0.0 (em 200 unidades)
-    stockFactor = 1.0 - (quantity - MAX_QTY_FOR_FULL_STOCK_IMPACT) / (MIN_QTY_FOR_ZERO_STOCK_IMPACT - MAX_QTY_FOR_ZERO_STOCK_IMPACT);
+    stockFactor = 1.0 - (quantity - MAX_QTY_FOR_FULL_STOCK_IMPACT) / (MIN_QTY_FOR_ZERO_STOCK_IMPACT - MAX_QTY_FOR_FULL_STOCK_IMPACT);
   } else {
     stockFactor = 0.0;
   }
-  stockFactor = Math.max(0, Math.min(1.0, stockFactor)); // Garante que esteja entre 0 e 1
+  stockFactor = Math.max(0, Math.min(1.0, stockFactor)); 
   
-  // 3. Ponderação dos fatores (Exemplo: Validade 60%, Estoque 40%)
-  const WEIGHT_URGENCY = 0.6;
-  const WEIGHT_STOCK = 0.4;
+  // 3. Ponderação dos fatores (Validade tem mais peso que estoque)
+  const WEIGHT_URGENCY = 0.7;
+  const WEIGHT_STOCK = 0.3;
   const weightedFactor = (urgencyFactor * WEIGHT_URGENCY) + (stockFactor * WEIGHT_STOCK);
   
   // 4. Cálculo do Desconto Final (entre 5% e 30%)
   const discountRange = MAX_DISCOUNT - MIN_DISCOUNT;
   const finalDiscount = MIN_DISCOUNT + (discountRange * weightedFactor);
 
-  // Arredonda para o inteiro mais próximo e garante o limite (5-30%)
   return Math.min(MAX_DISCOUNT, Math.max(MIN_DISCOUNT, Math.round(finalDiscount)));
 };
 
@@ -91,51 +86,35 @@ const PricingAIPanel: React.FC<PricingAIPanelProps> = ({ products }) => {
       );
       
       // ==========================================================
-      // UTILIZANDO A LÓGICA DE DESCONTO DINÂMICO AQUI 
+      // CORREÇÃO: O CÁLCULO LOCAL FOI REMOVIDO DAQUI. 
+      // A função 'analyzePricingWithAI' agora é responsável por 
+      // retornar o preço sugerido e o desconto calculados pela IA.
       // ==========================================================
-      const dynamicDiscountPercentage = calculateDynamicDiscount(
-          daysAteVencer, 
-          product.quantidade || 50
-      );
-      
-      // Simulação do preço sugerido baseado no desconto dinâmico
-      const suggestedPrice = product.valor * (1 - dynamicDiscountPercentage / 100);
 
       const pricingData: ProductPricingData = {
         nome: product.nome,
         precoAtual: product.valor,
-        precoCusto: product.valor * 0.6,
+        precoCusto: product.valor * 0.6, // Simulação de Custo
         quantidade: product.quantidade || 50,
         diasAteVencer: daysAteVencer,
         categoria: product.categoria || "Geral",
-        vendas30dias: Math.floor(Math.random() * 100),
+        vendas30dias: Math.floor(Math.random() * 100), // Simulação de Vendas
         precosConcorrencia: [
           product.valor * 0.95,
           product.valor * 1.05,
           product.valor * 0.98,
-        ],
+        ], // Simulação de Concorrência
       };
 
-      // Chama o serviço de IA e passa os dados (mantendo a simulação do retorno)
-      
+      // Chama o serviço de IA para obter a sugestão
       const result = await analyzePricingWithAI(pricingData);
       
-      // **Ajuste na simulação do resultado para refletir o desconto dinâmico**
-      const newSuggestion: PricingSuggestion = {
-        ...result, 
-        precoSugerido: suggestedPrice, // Usa o preço calculado com desconto dinâmico
-        precoAtual: product.valor,
-        descontoPercentual: dynamicDiscountPercentage, // Usa o desconto dinâmico
-        // Classificação de Urgência e Estratégia baseada no DESCONTO (para visualização)
-        urgencia: dynamicDiscountPercentage >= 20 ? 'alta' : dynamicDiscountPercentage >= 10 ? 'media' : 'baixa',
-        estrategia: dynamicDiscountPercentage >= 20 ? 'urgente' : dynamicDiscountPercentage >= 10 ? 'promocional' : 'competitivo',
-        razao: `Ajuste de preço de ${dynamicDiscountPercentage}% sugerido com base na validade (${daysAteVencer} dias restantes) e estoque (${product.quantidade || 50} unidades).`,
-        impactoEstimado: `Aumento de vendas esperado de ${Math.floor(dynamicDiscountPercentage * 1.5)}% para maximizar o lucro antes do vencimento.`,
-      }
+      // USANDO O RESULTADO DIRETO DA IA, que contém o preço e desconto calculados
+      setSuggestion(result);
       
-      setSuggestion(newSuggestion);
     } catch (error) {
       console.error("Erro:", error);
+      // O fallback já é tratado dentro da função analyzePricingWithAI
     } finally {
       setIsAnalyzing(false);
     }
@@ -152,6 +131,7 @@ const PricingAIPanel: React.FC<PricingAIPanelProps> = ({ products }) => {
       setBulkAnalysis(result);
     } catch (error) {
       console.error("Erro na análise em massa:", error);
+      // O fallback já é tratado dentro da função analyzeBulkPricing
     } finally {
       setIsBulkAnalyzing(false);
     }
@@ -183,17 +163,13 @@ const PricingAIPanel: React.FC<PricingAIPanelProps> = ({ products }) => {
     }
   };
 
-  // ==========================================================
-  // CORREÇÃO: Mostrar 10 produtos mais relevantes (críticos e promocionais).
-  // Ordena por dias restantes (do mais urgente para o menos)
-  // ==========================================================
+  // Mostrar 10 produtos mais relevantes (críticos e promocionais)
   const relevantProducts = products
     .sort((a, b) => {
       const daysA = Math.ceil((new Date(a.dataValidade).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
       const daysB = Math.ceil((new Date(b.dataValidade).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
       
-      // Ordena do mais urgente para o menos
-      return daysA - daysB; 
+      return daysA - daysB; // Ordena do mais urgente para o menos
     })
     .slice(0, 10);
 
@@ -466,30 +442,16 @@ const PricingAIPanel: React.FC<PricingAIPanelProps> = ({ products }) => {
 
             <div className="bg-blue-50 p-4 rounded-lg mb-4">
               <p className="text-sm font-semibold text-blue-800 mb-2">
-                Análise da IA:
+                Razão da Sugestão:
               </p>
               <p className="text-sm text-blue-700">{suggestion.razao}</p>
             </div>
-
-            <div className="bg-purple-50 p-4 rounded-lg mb-4">
+            
+            <div className="bg-purple-50 p-4 rounded-lg">
               <p className="text-sm font-semibold text-purple-800 mb-2">
-                Impacto Esperado:
+                Impacto Estimado:
               </p>
-              <p className="text-sm text-purple-700">
-                {suggestion.impactoEstimado}
-              </p>
-            </div>
-
-            <div className="flex gap-3">
-              <button className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition font-medium">
-                Aplicar Novo Preço
-              </button>
-              <button
-                onClick={() => setSuggestion(null)}
-                className="flex-1 bg-slate-200 text-slate-700 py-2 px-4 rounded-lg hover:bg-slate-300 transition font-medium"
-              >
-                Cancelar
-              </button>
+              <p className="text-sm text-purple-700">{suggestion.impactoEstimado}</p>
             </div>
           </div>
         )}
