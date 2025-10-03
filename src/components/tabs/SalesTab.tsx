@@ -74,8 +74,9 @@ const SalesTab: React.FC<SalesTabProps> = ({ products }) => {
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-slate-500 font-medium">Total de Vendas</p>
+              <p className="text-sm text-slate-500 font-medium">Transações de Venda</p>
               <p className="text-3xl font-bold text-slate-800 mt-1">{salesSummary.totalSales}</p>
+              <p className="text-xs text-slate-500 mt-1">Número de vendas realizadas</p>
             </div>
             <div className="bg-blue-100 p-3 rounded-lg">
               <ShoppingCart className="text-blue-600" size={24} />

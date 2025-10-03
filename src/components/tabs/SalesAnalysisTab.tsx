@@ -40,11 +40,12 @@ const SalesAnalysisTab: React.FC<SalesAnalysisTabProps> = ({ products, sales: re
   useEffect(() => {
     if (realSales && realSales.length > 0) {
       setUseRealData(true);
+      setSalesData([]); // Limpar dados mockados
       // Usar dados reais de vendas
       analyzeSales();
     } else {
       setUseRealData(false);
-      // Gerar dados mockados de vendas
+      // Gerar dados mockados de vendas APENAS se não houver vendas reais
       const mockSales = generateMockSalesData(products);
       setSalesData(mockSales);
       
@@ -62,12 +63,15 @@ const SalesAnalysisTab: React.FC<SalesAnalysisTabProps> = ({ products, sales: re
     try {
       let result: SalesAnalysis;
       
-      if (useRealData && realSales) {
-        // Usar dados reais de vendas
+      // SEMPRE priorizar dados reais se existirem
+      if (realSales && realSales.length > 0) {
+        console.log('Analisando com dados REAIS:', realSales.length, 'vendas');
         result = await analyzeSalesWithAI(realSales, products);
-      } else {
-        // Usar dados mockados
+      } else if (salesData && salesData.length > 0) {
+        console.log('Analisando com dados MOCKADOS:', salesData.length, 'vendas');
         result = await analyzeSalesWithAI(salesData, products);
+      } else {
+        throw new Error('Nenhum dado de venda disponível para análise');
       }
       
       setAnalysis(result);
@@ -153,6 +157,19 @@ const SalesAnalysisTab: React.FC<SalesAnalysisTabProps> = ({ products, sales: re
             A IA analisa padrões de compra, comportamento do cliente, sazonalidade e tendências 
             para fornecer insights acionáveis que podem aumentar suas vendas em até 25%.
           </p>
+          {realSales && realSales.length > 0 ? (
+            <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+              <p className="text-sm font-medium text-green-800">
+                ✅ Analisando {realSales.length} vendas reais registradas
+              </p>
+            </div>
+          ) : (
+            <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="text-sm font-medium text-yellow-800">
+                ⚠️ Usando dados de demonstração. Registre vendas reais para análise personalizada.
+              </p>
+            </div>
+          )}
         </div>
 
         {error && (
@@ -200,7 +217,7 @@ const SalesAnalysisTab: React.FC<SalesAnalysisTabProps> = ({ products, sales: re
                 <p className="text-2xl font-bold text-blue-600">
                   {analysis.metricas.vendasTotal}
                 </p>
-                <p className="text-xs text-slate-600 mt-1">Vendas</p>
+                <p className="text-xs text-slate-600 mt-1">Transações</p>
               </div>
               
               <div className="bg-white/80 rounded-lg p-4 text-center">

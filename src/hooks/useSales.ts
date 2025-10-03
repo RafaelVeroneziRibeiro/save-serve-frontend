@@ -17,7 +17,7 @@ export const useSales = (initialSales: Sale[] = INITIAL_SALES) => {
   });
 
   const salesSummary: SalesSummary = useMemo(() => {
-    const totalSales = sales.length;
+    const totalSales = sales.length; // Número de transações de venda
     const totalRevenue = sales.reduce((sum, sale) => sum + sale.totalPrice, 0);
     const averageTicket = totalSales > 0 ? totalRevenue / totalSales : 0;
 

@@ -2,7 +2,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const genAI = new GoogleGenerativeAI('AIzaSyBDq25Gn5b9tRx5lhpAXUni64hPTJsX5gM');
 
-export interface SalesData {
+export interface SalesData {                                                                                                                                                                                                      
   produto: string;
   quantidadeVendida: number;
   valorVenda: number;
@@ -21,12 +21,12 @@ export interface RealSalesData {
   quantity: number;
   unitPrice: number;
   totalPrice: number;
-  saleDate: string;
+  saleDate: string;                                                                                                                   
   customerName?: string;
   paymentMethod: 'dinheiro' | 'cartao' | 'pix';
   createdAt: string;
 }
-
+                                                                                  
 export interface SalesTrend {
   periodo: string;
   vendas: number;
@@ -88,6 +88,10 @@ export async function analyzeSalesWithAI(salesData: SalesData[], products: any[]
 export async function analyzeSalesWithAI(realSalesData: RealSalesData[], products: any[]): Promise<SalesAnalysis>;
 export async function analyzeSalesWithAI(salesData: SalesData[] | RealSalesData[], products: any[]): Promise<SalesAnalysis> {
   try {
+    console.log('🔍 Iniciando análise de vendas com IA...');
+    console.log('📊 Dados recebidos:', salesData.length, 'transações');
+    console.log('📦 Produtos no estoque:', products.length);
+    
     const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
     
     const hoje = new Date().toLocaleDateString('pt-BR');
@@ -126,15 +130,17 @@ export async function analyzeSalesWithAI(salesData: SalesData[] | RealSalesData[
     }));
 
     const prompt = `
-Você é um especialista em análise de vendas e comportamento do consumidor para supermercados. Analise os dados de vendas e estoque fornecidos:
+Você é um especialista em análise de vendas e comportamento do consumidor para supermercados. Analise APENAS os dados de vendas fornecidos abaixo:
 
 DATA ATUAL: ${hoje}
 
-DADOS DE VENDAS (últimos 30 dias):
-${JSON.stringify(dadosVendas.slice(0, 100), null, 2)}
+DADOS DE VENDAS REAIS (${dadosVendas.length} transações):
+${JSON.stringify(dadosVendas, null, 2)}
 
 ESTOQUE ATUAL:
 ${JSON.stringify(estoqueAtual, null, 2)}
+
+IMPORTANTE: Use APENAS os dados de vendas fornecidos acima. NÃO invente ou adicione dados fictícios.
 
 IMPORTANTE: Retorne APENAS um JSON válido seguindo esta estrutura exata:
 
@@ -220,18 +226,39 @@ Seja específico e acionável nas recomendações.
     
   } catch (error) {
     console.error('Erro na análise de vendas IA:', error);
-    return generateFallbackSalesAnalysis(salesData, products);
+    return generateFallbackSalesAnalysis(salesData);
   }
 }
 
-function generateFallbackSalesAnalysis(salesData: SalesData[], products: any[]): SalesAnalysis {
-  const vendasTotal = salesData.reduce((sum, v) => sum + v.quantidadeVendida, 0);
-  const receitaTotal = salesData.reduce((sum, v) => sum + v.valorVenda, 0);
-  const ticketMedio = receitaTotal / salesData.length || 0;
+function generateFallbackSalesAnalysis(salesData: SalesData[] | RealSalesData[]): SalesAnalysis {
+  // Converter dados para formato unificado
+  const vendasUnificadas = salesData.map(venda => {
+    if ('productName' in venda) {
+      // Dados reais (RealSalesData)
+      return {
+        produto: venda.productName,
+        quantidadeVendida: venda.quantity,
+        valorVenda: venda.totalPrice,
+        dataVenda: venda.saleDate,
+        categoria: 'Geral',
+        margemLucro: 0.3,
+        cliente: venda.customerName || 'Cliente',
+        metodoPagamento: venda.paymentMethod
+      };
+    }
+    // Dados mockados (SalesData)
+    return venda;
+  });
+
+  // Calcular métricas corretas
+  const totalTransacoes = vendasUnificadas.length; // Número de transações de venda
+  const totalUnidadesVendidas = vendasUnificadas.reduce((sum, v) => sum + v.quantidadeVendida, 0); // Total de unidades vendidas
+  const receitaTotal = vendasUnificadas.reduce((sum, v) => sum + v.valorVenda, 0);
+  const ticketMedio = totalTransacoes > 0 ? receitaTotal / totalTransacoes : 0;
 
   // Agrupar por produto
   const produtosMap = new Map<string, { vendas: number; receita: number; margem: number }>();
-  salesData.forEach(venda => {
+  vendasUnificadas.forEach(venda => {
     const atual = produtosMap.get(venda.produto) || { vendas: 0, receita: 0, margem: 0 };
     produtosMap.set(venda.produto, {
       vendas: atual.vendas + venda.quantidadeVendida,
@@ -255,13 +282,13 @@ function generateFallbackSalesAnalysis(salesData: SalesData[], products: any[]):
     .slice(0, 5);
 
   return {
-    resumo: `Análise de ${salesData.length} vendas mostra receita total de R$ ${receitaTotal.toFixed(2)} com ticket médio de R$ ${ticketMedio.toFixed(2)}.`,
+    resumo: `Análise de ${totalTransacoes} transações de venda mostra receita total de R$ ${receitaTotal.toFixed(2)} com ticket médio de R$ ${ticketMedio.toFixed(2)}.`,
     tendencias: [
       {
         periodo: 'Última semana',
-        vendas: Math.floor(vendasTotal * 0.3),
+        vendas: Math.floor(totalUnidadesVendidas * 0.3),
         receita: Math.floor(receitaTotal * 0.3),
-        produtosVendidos: Math.floor(salesData.length * 0.3),
+        produtosVendidos: Math.floor(totalTransacoes * 0.3),
         ticketMedio: ticketMedio
       }
     ],
@@ -287,7 +314,7 @@ function generateFallbackSalesAnalysis(salesData: SalesData[], products: any[]):
       }
     ],
     metricas: {
-      vendasTotal,
+      vendasTotal: totalTransacoes, // Número de transações, não unidades
       receitaTotal,
       ticketMedio,
       crescimento: 0,
