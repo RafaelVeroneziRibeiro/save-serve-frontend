@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
 import { useInventory } from './hooks/useInventory';
+import { useSales } from './hooks/useSales';
 import { TabType, FeatureFlags } from './types';
 import Header from './components/layout/Header';
 import Navigation from './components/layout/Navigation';
 import HomeTab from './components/tabs/HomeTab';
 import StockTab from './components/tabs/StockTab';
 import ManageTab from './components/tabs/ManageTab';
+import SalesTab from './components/tabs/SalesTab';
+import SalesAnalysisTab from './components/tabs/SalesAnalysisTab';
 import AlertsTab from './components/tabs/AlertsTab';
 import FeatureFlagsTab from './components/tabs/FeatureFlagsTab';
 import PricingAIPanel from './components/tabs/PricingAiPanel';
-import SalesAnalysisTab from './components/tabs/SalesAnalysisTab';
 
 import AuthPage from './pages/Login';
 
@@ -17,6 +19,7 @@ import AuthPage from './pages/Login';
 const InventoryDashboard: React.FC<{ onLogout: () => void; userName: string; }> = ({ onLogout, userName }) => {
   const [activeTab, setActiveTab] = useState<TabType>('home');
   const inventory = useInventory();
+  const sales = useSales();
   
   const [featureFlags, setFeatureFlags] = useState<FeatureFlags>({
     autoAlerts: true,
@@ -38,12 +41,14 @@ const InventoryDashboard: React.FC<{ onLogout: () => void; userName: string; }> 
         return <StockTab products={inventory.products} />;
       case 'manage':
         return <ManageTab {...inventory} />;
+      case 'sales':
+        return <SalesTab products={inventory.products} />;
+      case 'sales-analysis':
+        return <SalesAnalysisTab products={inventory.products} sales={sales.sales} />;
       case 'alerts':
         return <AlertsTab alerts={inventory.alerts} />;
       case 'pricing':
         return <PricingAIPanel products={inventory.products} />;
-      case 'sales':
-        return <SalesAnalysisTab products={inventory.products} />;
       case 'flags': 
         return <FeatureFlagsTab featureFlags={featureFlags} toggleFlag={toggleFlag} />;
       default:

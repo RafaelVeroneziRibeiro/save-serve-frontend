@@ -20,36 +20,56 @@ import {
   analyzeSalesWithAI,
   generateMockSalesData,
   SalesAnalysis,
-  SalesData
+  SalesData,
+  RealSalesData
 } from '../../services/salesAnalysisAi';
+import { useSales } from '../../hooks/useSales';
 
 interface SalesAnalysisTabProps {
   products: any[];
+  sales?: RealSalesData[]; // Dados reais de vendas (opcional)
 }
 
-const SalesAnalysisTab: React.FC<SalesAnalysisTabProps> = ({ products }) => {
+const SalesAnalysisTab: React.FC<SalesAnalysisTabProps> = ({ products, sales: realSales }) => {
   const [salesData, setSalesData] = useState<SalesData[]>([]);
   const [analysis, setAnalysis] = useState<SalesAnalysis | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [useRealData, setUseRealData] = useState(false);
 
   useEffect(() => {
-    // Gerar dados mockados de vendas
-    const mockSales = generateMockSalesData(products);
-    setSalesData(mockSales);
-    
-    // Análise automática
-    if (mockSales.length > 0) {
+    if (realSales && realSales.length > 0) {
+      setUseRealData(true);
+      // Usar dados reais de vendas
       analyzeSales();
+    } else {
+      setUseRealData(false);
+      // Gerar dados mockados de vendas
+      const mockSales = generateMockSalesData(products);
+      setSalesData(mockSales);
+      
+      // Análise automática
+      if (mockSales.length > 0) {
+        analyzeSales();
+      }
     }
-  }, [products]);
+  }, [products, realSales]);
 
   const analyzeSales = async () => {
     setIsAnalyzing(true);
     setError(null);
     
     try {
-      const result = await analyzeSalesWithAI(salesData, products);
+      let result: SalesAnalysis;
+      
+      if (useRealData && realSales) {
+        // Usar dados reais de vendas
+        result = await analyzeSalesWithAI(realSales, products);
+      } else {
+        // Usar dados mockados
+        result = await analyzeSalesWithAI(salesData, products);
+      }
+      
       setAnalysis(result);
     } catch (err: any) {
       setError('Erro ao analisar vendas com IA');
@@ -146,7 +166,8 @@ const SalesAnalysisTab: React.FC<SalesAnalysisTabProps> = ({ products }) => {
             <Loader2 className="animate-spin text-blue-600 mb-3" size={32} />
             <p className="text-slate-600">A IA está analisando seus dados de vendas...</p>
             <p className="text-sm text-slate-500 mt-1">
-              Analisando {salesData.length} transações
+              Analisando {useRealData ? (realSales?.length || 0) : salesData.length} transações
+              {useRealData ? ' (dados reais)' : ' (dados de demonstração)'}
             </p>
           </div>
         ) : analysis ? (

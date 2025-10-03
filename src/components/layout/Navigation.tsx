@@ -1,7 +1,7 @@
 // src/components/layout/Navigation.tsx
 
 import React from 'react';
-import { Home, Box, Edit2, AlertTriangle, Settings, DollarSign, BarChart3 } from 'lucide-react';
+import { Home, Box, Edit2, AlertTriangle, Settings, DollarSign, BarChart3, ShoppingCart } from 'lucide-react';
 import { TabType } from '../../types';
 
 interface NavigationProps {
@@ -13,9 +13,10 @@ const TABS = [
   { id: 'home' as TabType, label: 'Home', icon: Home },
   { id: 'stock' as TabType, label: 'Estoque', icon: Box },
   { id: 'manage' as TabType, label: 'Gerenciar', icon: Edit2 },
+  { id: 'sales' as TabType, label: 'Vendas', icon: ShoppingCart },
+  { id: 'sales-analysis' as TabType, label: 'Análise IA', icon: BarChart3 },
   { id: 'alerts' as TabType, label: 'Alertas', icon: AlertTriangle },
   { id: 'pricing' as TabType, label: 'Precificação IA', icon: DollarSign },
-  { id: 'sales' as TabType, label: 'Análise de Vendas', icon: BarChart3 },
   { id: 'flags' as TabType, label: 'Feature Flags', icon: Settings }
 ];
 

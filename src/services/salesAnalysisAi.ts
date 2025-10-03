@@ -13,6 +13,20 @@ export interface SalesData {
   metodoPagamento: 'dinheiro' | 'cartao' | 'pix';
 }
 
+// Interface para dados reais de vendas
+export interface RealSalesData {
+  id: number;
+  productId: number;
+  productName: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+  saleDate: string;
+  customerName?: string;
+  paymentMethod: 'dinheiro' | 'cartao' | 'pix';
+  createdAt: string;
+}
+
 export interface SalesTrend {
   periodo: string;
   vendas: number;
@@ -70,22 +84,39 @@ export interface SalesAnalysis {
   };
 }
 
-export async function analyzeSalesWithAI(salesData: SalesData[], products: any[]): Promise<SalesAnalysis> {
+export async function analyzeSalesWithAI(salesData: SalesData[], products: any[]): Promise<SalesAnalysis>;
+export async function analyzeSalesWithAI(realSalesData: RealSalesData[], products: any[]): Promise<SalesAnalysis>;
+export async function analyzeSalesWithAI(salesData: SalesData[] | RealSalesData[], products: any[]): Promise<SalesAnalysis> {
   try {
     const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
     
     const hoje = new Date().toLocaleDateString('pt-BR');
     
-    // Preparar dados para análise
-    const dadosVendas = salesData.map(venda => ({
-      produto: venda.produto,
-      quantidade: venda.quantidadeVendida,
-      valor: venda.valorVenda,
-      data: venda.dataVenda,
-      categoria: venda.categoria,
-      margem: venda.margemLucro,
-      pagamento: venda.metodoPagamento
-    }));
+    // Preparar dados para análise (compatível com dados reais e mockados)
+    const dadosVendas = salesData.map(venda => {
+      // Se for dados reais (RealSalesData)
+      if ('productName' in venda) {
+        return {
+          produto: venda.productName,
+          quantidade: venda.quantity,
+          valor: venda.totalPrice,
+          data: venda.saleDate,
+          categoria: 'Geral', // Categoria padrão para dados reais
+          margem: 0.3, // Margem padrão estimada
+          pagamento: venda.paymentMethod
+        };
+      }
+      // Se for dados mockados (SalesData)
+      return {
+        produto: venda.produto,
+        quantidade: venda.quantidadeVendida,
+        valor: venda.valorVenda,
+        data: venda.dataVenda,
+        categoria: venda.categoria,
+        margem: venda.margemLucro,
+        pagamento: venda.metodoPagamento
+      };
+    });
 
     const estoqueAtual = products.map(p => ({
       nome: p.nome,
