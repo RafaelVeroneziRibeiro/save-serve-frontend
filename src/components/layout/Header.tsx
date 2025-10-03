@@ -5,7 +5,7 @@ interface HeaderProps {
   lowStockCount: number;
   showNotifications: boolean;
   onLogout: () => void;
-  userName: string; // Nova prop
+  userName: string;
 }
 
 const Header: React.FC<HeaderProps> = ({ lowStockCount, showNotifications, onLogout, userName }) => {
