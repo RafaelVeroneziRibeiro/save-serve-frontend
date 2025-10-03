@@ -39,7 +39,7 @@ export const produtos: Produto[] = [
     "hora_entrada": "09:00",
     "data_saida": "01/10/2025",
     "hora_saida": "17:45",
-    "data_validade": "20/09/2026"
+    "data_validade": "04/10/2025"
   },
   {
     "nome": "Feijão Carioca Tipo 1 Pacote 1kg",
@@ -49,7 +49,7 @@ export const produtos: Produto[] = [
     "hora_entrada": "09:05",
     "data_saida": null,
     "hora_saida": null,
-    "data_validade": "20/03/2027"
+    "data_validade": "15/10/2025"
   },
   {
     "nome": "Café Torrado e Moído 500g",
@@ -59,7 +59,7 @@ export const produtos: Produto[] = [
     "hora_entrada": "11:20",
     "data_saida": "30/09/2025",
     "hora_saida": "14:00",
-    "data_validade": "22/05/2026"
+    "data_validade": "05/10/2025"
   },
   {
     "nome": "Óleo de Soja 900ml",
