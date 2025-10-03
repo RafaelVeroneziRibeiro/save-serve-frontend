@@ -117,7 +117,9 @@ Classifique em categorias:
 - PROMOCIONAIS: produtos que precisam de desconto (7-30 dias ou estoque alto)
 - ESTÁVEIS: produtos que podem manter preço atual
 
-Retorne APENAS JSON válido:
+nessas categorias (URGENTES, PROMOCIONAIS, ESTÁVEIS), pode mudar um pouco a classificação das regras conforme julgar necessário.
+
+Responda APENAS com JSON válido (sem texto fora do JSON, sem comentários), no formato:
 {
   "urgentes": 0,
   "promocionais": 0,
@@ -136,7 +138,10 @@ Retorne APENAS JSON válido:
   ]
 }
 
-Liste as 5 maiores prioridades por urgência.
+Regras adicionais:
+- O campo "desconto" deve ser um número inteiro representando a % de desconto sugerido.
+- O "precoSugerido" deve ser menor que "precoAtual" apenas quando houver desconto; caso contrário, mantenha o mesmo valor.
+- Liste prioridades em ordem de urgência (alta > média > baixa) e impacto financeiro.
 `;
 
     const result = await model.generateContent(prompt);
