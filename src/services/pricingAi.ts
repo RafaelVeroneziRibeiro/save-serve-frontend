@@ -51,7 +51,7 @@ export interface BulkPricingAnalysis {
 
 export async function analyzePricingWithAI(product: ProductPricingData): Promise<PricingSuggestion> {
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
     
     // Calcula Margem Atual para o Prompt
     const margemAtual = (((product.precoAtual - product.precoCusto) / product.precoAtual) * 100).toFixed(1);
@@ -114,7 +114,7 @@ Retorne APENAS um JSON válido:
 
 export async function analyzeBulkPricing(products: any[]): Promise<BulkPricingAnalysis> {
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
     
     // Prepara um resumo de dados para o modelo (limite de 50 para evitar excesso de tokens)
     const resumoProdutos = products.map(p => ({

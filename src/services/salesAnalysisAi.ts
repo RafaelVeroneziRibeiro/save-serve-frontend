@@ -91,7 +91,7 @@ export async function analyzeSalesWithAI(salesData: SalesData[] | RealSalesData[
     console.log('📊 Dados recebidos:', salesData.length, 'transações');
     console.log('📦 Produtos no estoque:', products.length);
     
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
     
     const hoje = new Date().toLocaleDateString('pt-BR');
     

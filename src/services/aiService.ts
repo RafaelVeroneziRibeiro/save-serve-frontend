@@ -22,7 +22,7 @@ export interface AIAnalysis {
 
 export async function analyzeInventoryWithAI(products: any[]): Promise<AIAnalysis> {
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
     
     const hoje = new Date().toISOString().split('T')[0];
     
