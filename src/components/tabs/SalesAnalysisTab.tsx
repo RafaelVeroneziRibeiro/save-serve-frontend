@@ -157,19 +157,26 @@ const SalesAnalysisTab: React.FC<SalesAnalysisTabProps> = ({ products, sales: re
             A IA analisa padrões de compra, comportamento do cliente, sazonalidade e tendências 
             para fornecer insights acionáveis que podem aumentar suas vendas em até 25%.
           </p>
-          {realSales && realSales.length > 0 ? (
-            <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-              <p className="text-sm font-medium text-green-800">
-                ✅ Analisando {realSales.length} vendas reais registradas
-              </p>
-            </div>
-          ) : (
-            <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <p className="text-sm font-medium text-yellow-800">
-                ⚠️ Usando dados de demonstração. Registre vendas reais para análise personalizada.
-              </p>
-            </div>
-          )}
+          {(() => {
+            const produtosVendidos = products.filter(p => p.dataSaida);
+            if (produtosVendidos.length > 0) {
+              return (
+                <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <p className="text-sm font-medium text-green-800">
+                    ✅ Analisando {produtosVendidos.length} produtos vendidos (com data de saída)
+                  </p>
+                </div>
+              );
+            } else {
+              return (
+                <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-sm font-medium text-red-800">
+                    ❌ Nenhum produto vendido encontrado. Adicione data de saída aos produtos para análise.
+                  </p>
+                </div>
+              );
+            }
+          })()}
         </div>
 
         {error && (

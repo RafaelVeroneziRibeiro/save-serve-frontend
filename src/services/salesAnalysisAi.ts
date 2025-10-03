@@ -96,34 +96,27 @@ export async function analyzeSalesWithAI(salesData: SalesData[] | RealSalesData[
     
     const hoje = new Date().toLocaleDateString('pt-BR');
     
-    // Preparar dados para análise (compatível com dados reais e mockados)
-    const dadosVendas = salesData.map(venda => {
-      // Se for dados reais (RealSalesData)
-      if ('productName' in venda) {
-        return {
-          produto: venda.productName,
-          quantidade: venda.quantity,
-          valor: venda.totalPrice,
-          data: venda.saleDate,
-          categoria: 'Geral', // Categoria padrão para dados reais
-          margem: 0.3, // Margem padrão estimada
-          pagamento: venda.paymentMethod
-        };
-      }
-      // Se for dados mockados (SalesData)
-      return {
-        produto: venda.produto,
-        quantidade: venda.quantidadeVendida,
-        valor: venda.valorVenda,
-        data: venda.dataVenda,
-        categoria: venda.categoria,
-        margem: venda.margemLucro,
-        pagamento: venda.metodoPagamento
-      };
-    });
+    // FOCAR APENAS EM PRODUTOS VENDIDOS (com data de saída)
+    const produtosVendidos = products.filter(p => p.dataSaida);
+    console.log('🛒 Produtos vendidos encontrados:', produtosVendidos.length);
+    
+    if (produtosVendidos.length === 0) {
+      throw new Error('Nenhum produto vendido encontrado para análise');
+    }
+    
+    // Preparar dados para análise baseados APENAS nos produtos vendidos
+    const dadosVendas = produtosVendidos.map(produto => ({
+      produto: produto.nome,
+      quantidade: produto.quantidade,
+      valor: produto.valor * produto.quantidade, // Valor total da venda
+      data: produto.dataSaida,
+      categoria: 'Geral',
+      margem: 0.3, // Margem padrão estimada
+      pagamento: 'dinheiro' // Padrão, pois não temos essa info nos produtos
+    }));
 
-    // Produtos vendidos (com data de saída)
-    const produtosVendidos = products.filter(p => p.dataSaida).map(p => ({
+    // Detalhes dos produtos vendidos para análise
+    const detalhesProdutosVendidos = produtosVendidos.map(p => ({
       nome: p.nome,
       valor: p.valor,
       quantidade: p.quantidade,
@@ -134,7 +127,7 @@ export async function analyzeSalesWithAI(salesData: SalesData[] | RealSalesData[
       diasAteVencer: Math.ceil((new Date(p.dataValidade).getTime() - new Date(p.dataSaida!).getTime()) / (1000 * 60 * 60 * 24))
     }));
 
-    // Produtos em estoque (sem data de saída)
+    // Produtos em estoque (sem data de saída) - apenas para contexto
     const estoqueAtual = products.filter(p => !p.dataSaida).map(p => ({
       nome: p.nome,
       valor: p.valor,
@@ -144,21 +137,24 @@ export async function analyzeSalesWithAI(salesData: SalesData[] | RealSalesData[
     }));
 
     const prompt = `
-Você é um especialista em análise de vendas e comportamento do consumidor para supermercados. Analise APENAS os dados fornecidos abaixo:
+Você é um especialista em análise de vendas e comportamento do consumidor para supermercados. Analise APENAS os produtos que foram vendidos (têm data de saída):
 
 DATA ATUAL: ${hoje}
 
-DADOS DE VENDAS REAIS (${dadosVendas.length} transações):
-${JSON.stringify(dadosVendas, null, 2)}
+PRODUTOS VENDIDOS (${detalhesProdutosVendidos.length} produtos que saíram do estoque):
+${JSON.stringify(detalhesProdutosVendidos, null, 2)}
 
-PRODUTOS VENDIDOS (com datas de saída - ${produtosVendidos.length} produtos):
-${JSON.stringify(produtosVendidos, null, 2)}
+DADOS DE VENDAS BASEADOS NOS PRODUTOS VENDIDOS (${dadosVendas.length} vendas):
+${JSON.stringify(dadosVendas, null, 2)}
 
 ESTOQUE ATUAL (produtos não vendidos - ${estoqueAtual.length} produtos):
 ${JSON.stringify(estoqueAtual, null, 2)}
 
-IMPORTANTE: Use APENAS os dados fornecidos acima. NÃO invente ou adicione dados fictícios.
-ANÁLISE: Considere tanto as transações de venda quanto os produtos que saíram do estoque com data de saída.
+IMPORTANTE: 
+- Use APENAS os produtos que têm data de saída (foram vendidos)
+- NÃO invente ou adicione dados fictícios
+- Foque na análise dos produtos que realmente saíram do estoque
+- Considere o tempo que cada produto ficou no estoque antes de sair
 
 IMPORTANTE: Retorne APENAS um JSON válido seguindo esta estrutura exata:
 
@@ -248,62 +244,60 @@ Seja específico e acionável nas recomendações.
     
   } catch (error) {
     console.error('Erro na análise de vendas IA:', error);
-    return generateFallbackSalesAnalysis(salesData, products);
+    return generateFallbackSalesAnalysis(products);
   }
 }
 
-function generateFallbackSalesAnalysis(salesData: SalesData[] | RealSalesData[], products?: any[]): SalesAnalysis {
-  // Converter dados para formato unificado
-  const vendasUnificadas = salesData.map(venda => {
-    if ('productName' in venda) {
-      // Dados reais (RealSalesData)
-      return {
-        produto: venda.productName,
-        quantidadeVendida: venda.quantity,
-        valorVenda: venda.totalPrice,
-        dataVenda: venda.saleDate,
-        categoria: 'Geral',
-        margemLucro: 0.3,
-        cliente: venda.customerName || 'Cliente',
-        metodoPagamento: venda.paymentMethod
-      };
-    }
-    // Dados mockados (SalesData)
-    return venda;
-  });
-
-  // Analisar produtos com data de saída se disponível
-  let produtosVendidos = 0;
-  let tempoMedioEstoque = 0;
+function generateFallbackSalesAnalysis(products: any[]): SalesAnalysis {
+  // FOCAR APENAS EM PRODUTOS VENDIDOS (com data de saída)
   
-  if (products) {
-    const produtosComSaida = products.filter(p => p.dataSaida);
-    produtosVendidos = produtosComSaida.length;
-    
-    if (produtosComSaida.length > 0) {
-      const temposEstoque = produtosComSaida.map(p => {
-        const entrada = new Date(p.dataEntrada);
-        const saida = new Date(p.dataSaida);
-        return Math.ceil((saida.getTime() - entrada.getTime()) / (1000 * 60 * 60 * 24));
-      });
-      tempoMedioEstoque = temposEstoque.reduce((sum, tempo) => sum + tempo, 0) / temposEstoque.length;
-    }
+  const produtosVendidos = products.filter(p => p.dataSaida);
+  
+  if (produtosVendidos.length === 0) {
+    return {
+      resumo: 'Nenhum produto vendido encontrado para análise. Registre produtos com data de saída para obter insights.',
+      tendencias: [],
+      produtosTop: [],
+      insightsClientes: [],
+      oportunidades: [],
+      metricas: {
+        vendasTotal: 0,
+        receitaTotal: 0,
+        ticketMedio: 0,
+        crescimento: 0,
+        produtosMaisVendidos: 0,
+        categoriaTop: 'N/A'
+      },
+      previsoes: {
+        proximaSemana: 0,
+        proximoMes: 0,
+        tendencia: 'estavel',
+        confianca: 0
+      }
+    };
   }
+  
+  // Calcular métricas baseadas APENAS nos produtos vendidos
+  const totalTransacoes = produtosVendidos.length;
+  const receitaTotal = produtosVendidos.reduce((sum, p) => sum + (p.valor * p.quantidade), 0);
+  const ticketMedio = receitaTotal / totalTransacoes;
+  
+  // Calcular tempo médio no estoque
+  const temposEstoque = produtosVendidos.map(p => {
+    const entrada = new Date(p.dataEntrada);
+    const saida = new Date(p.dataSaida);
+    return Math.ceil((saida.getTime() - entrada.getTime()) / (1000 * 60 * 60 * 24));
+  });
+  const tempoMedioEstoque = temposEstoque.reduce((sum, tempo) => sum + tempo, 0) / temposEstoque.length;
 
-  // Calcular métricas corretas
-  const totalTransacoes = vendasUnificadas.length; // Número de transações de venda
-  const totalUnidadesVendidas = vendasUnificadas.reduce((sum, v) => sum + v.quantidadeVendida, 0); // Total de unidades vendidas
-  const receitaTotal = vendasUnificadas.reduce((sum, v) => sum + v.valorVenda, 0);
-  const ticketMedio = totalTransacoes > 0 ? receitaTotal / totalTransacoes : 0;
-
-  // Agrupar por produto
+  // Agrupar produtos vendidos por nome
   const produtosMap = new Map<string, { vendas: number; receita: number; margem: number }>();
-  vendasUnificadas.forEach(venda => {
-    const atual = produtosMap.get(venda.produto) || { vendas: 0, receita: 0, margem: 0 };
-    produtosMap.set(venda.produto, {
-      vendas: atual.vendas + venda.quantidadeVendida,
-      receita: atual.receita + venda.valorVenda,
-      margem: (atual.margem + venda.margemLucro) / 2
+  produtosVendidos.forEach(produto => {
+    const atual = produtosMap.get(produto.nome) || { vendas: 0, receita: 0, margem: 0 };
+    produtosMap.set(produto.nome, {
+      vendas: atual.vendas + produto.quantidade,
+      receita: atual.receita + (produto.valor * produto.quantidade),
+      margem: 0.3 // Margem padrão
     });
   });
 
@@ -321,17 +315,15 @@ function generateFallbackSalesAnalysis(salesData: SalesData[] | RealSalesData[],
     .sort((a, b) => b.vendas - a.vendas)
     .slice(0, 5);
 
-  const resumoBase = `Análise de ${totalTransacoes} transações de venda mostra receita total de R$ ${receitaTotal.toFixed(2)} com ticket médio de R$ ${ticketMedio.toFixed(2)}.`;
-  const resumoCompleto = produtosVendidos > 0 
-    ? `${resumoBase} ${produtosVendidos} produtos saíram do estoque com tempo médio de ${tempoMedioEstoque.toFixed(0)} dias.`
-    : resumoBase;
+  const resumoBase = `Análise de ${totalTransacoes} produtos vendidos mostra receita total de R$ ${receitaTotal.toFixed(2)} com ticket médio de R$ ${ticketMedio.toFixed(2)}.`;
+  const resumoCompleto = `${resumoBase} Produtos ficaram em média ${tempoMedioEstoque.toFixed(0)} dias no estoque antes de sair.`;
 
   return {
     resumo: resumoCompleto,
     tendencias: [
       {
         periodo: 'Última semana',
-        vendas: Math.floor(totalUnidadesVendidas * 0.3),
+        vendas: Math.floor(totalTransacoes * 0.3),
         receita: Math.floor(receitaTotal * 0.3),
         produtosVendidos: Math.floor(totalTransacoes * 0.3),
         ticketMedio: ticketMedio

@@ -29,7 +29,7 @@ export async function analyzeInventoryWithAI(products: any[]): Promise<AIAnalysi
     const prompt = `
 Você é um especialista em gestão de estoque. Analise o inventário abaixo:
 
-Data de hoje: ${hoje}
+Data de hoje: ${hoje}         
 
 Produtos:
 ${JSON.stringify(products.map(p => ({
