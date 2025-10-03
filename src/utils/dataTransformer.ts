@@ -19,6 +19,13 @@ const parseBrDateToISODate = (dateStr: string): string => {
   return `${year}-${month}-${day}`;
 };
 
+export const formatCurrency = (value: number): string => {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  }).format(value);
+};
+
 /**
  * Transforma a lista de produtos do mock para o formato `Product` que a aplicação utiliza.
  * ESTA É A ÚNICA FUNÇÃO EXPORTADA.

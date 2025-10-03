@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Package, DollarSign, AlertTriangle, Brain, TrendingDown, Calendar, ShoppingCart, Loader2 } from 'lucide-react';
 import { Product } from '../../types';
 import { analyzeInventoryWithAI, AIAnalysis } from '../../services/aiService';
+import { formatCurrency } from '../../utils/dataTransformer'
 
 interface HomeTabProps {
   products: Product[];
@@ -76,7 +77,7 @@ const HomeTab: React.FC<HomeTabProps> = ({ products, totalValue, lowStockCount }
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-slate-500 font-medium">Valor Total</p>
-              <p className="text-3xl font-bold text-green-600 mt-1">R$ {totalValue.toFixed(2)}</p>
+              <p className="text-3xl font-bold text-green-600 mt-1">{formatCurrency(totalValue)}</p>
             </div>
             <div className="bg-green-100 p-3 rounded-lg">
               <DollarSign className="text-green-600" size={24} />
@@ -89,7 +90,7 @@ const HomeTab: React.FC<HomeTabProps> = ({ products, totalValue, lowStockCount }
             <div>
               <p className="text-sm text-slate-500 font-medium">Valor em Risco</p>
               <p className="text-3xl font-bold text-red-600 mt-1">
-                R$ {aiAnalysis ? aiAnalysis.valorEmRisco.toFixed(2) : '0.00'}
+                {aiAnalysis ? formatCurrency(aiAnalysis.valorEmRisco) : 'R$ 0,00'}
               </p>
               <p className="text-xs text-slate-500 mt-1">Análise por IA</p>
             </div>
