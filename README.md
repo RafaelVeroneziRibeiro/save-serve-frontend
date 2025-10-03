@@ -38,7 +38,7 @@ Para executar o projeto, você precisa ter instalado em sua máquina:
 
 1. Clone este repositório:
     ```bash
-    git clone https://github.com/seu-usuario/save-serve-frontend.git
+    git clone https://github.com/RafaelVeroneziRibeiro/save-serve-frontend.git
     ```
 2. Navegue até o diretório do projeto:
     ```bash
