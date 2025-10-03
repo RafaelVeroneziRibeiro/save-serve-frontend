@@ -1,233 +1,367 @@
-import React from 'react';
-import {
-  ShoppingCart,
-  DollarSign,
-  Calendar,
-  TrendingUp,
-  Package,
-  Receipt
-} from 'lucide-react';
+import React, { useState } from 'react';
+import { ShoppingCart, Package, TrendingUp, AlertCircle, CheckCircle } from 'lucide-react';
 
-interface SalesTabProps {
-  products: any[];
-}
+const SalesInterface = () => {
+  const [batches, setBatches] = useState([
+    {
+      id: 1,
+      nome: 'Arroz Tipo 1 - 5kg',
+      quantidade: 50,
+      quantidadeVendida: 15,
+      valor: 25.90,
+      dataEntrada: '2025-01-15',
+      dataValidade: '2025-12-31'
+    },
+    {
+      id: 2,
+      nome: 'Feijão Preto - 1kg',
+      quantidade: 100,
+      quantidadeVendida: 45,
+      valor: 8.50,
+      dataEntrada: '2025-01-20',
+      dataValidade: '2025-10-31'
+    },
+    {
+      id: 3,
+      nome: 'Óleo de Soja - 900ml',
+      quantidade: 30,
+      quantidadeVendida: 28,
+      valor: 6.99,
+      dataEntrada: '2025-02-01',
+      dataValidade: '2026-02-01'
+    }
+  ]);
 
-const SalesTab: React.FC<SalesTabProps> = ({ products }) => {
+  const [sales, setSales] = useState([]);
+  const [selectedBatch, setSelectedBatch] = useState(null);
+  const [quantity, setQuantity] = useState(1);
+  const [customerName, setCustomerName] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('dinheiro');
+  const [notification, setNotification] = useState(null);
 
-  // Produtos que já saíram (têm data de saída)
-  const produtosVendidos = products.filter(p => p.dataSaida);
-  
-  // Calcular métricas baseadas nos produtos vendidos
-  const vendasSummary = {
-    totalSales: produtosVendidos.length,
-    totalRevenue: produtosVendidos.reduce((sum, p) => sum + (p.valor * p.quantidade), 0),
-    averageTicket: produtosVendidos.length > 0 ? produtosVendidos.reduce((sum, p) => sum + (p.valor * p.quantidade), 0) / produtosVendidos.length : 0,
-    salesByPaymentMethod: { dinheiro: 0, cartao: 0, pix: 0 }, // Não temos essa info nos produtos
-    topProducts: produtosVendidos
-      .reduce((acc, p) => {
-        const existing = acc.find(item => item.productName === p.nome);
-        if (existing) {
-          existing.totalSold += p.quantidade;
-          existing.revenue += (p.valor * p.quantidade);
-        } else {
-          acc.push({
-            productName: p.nome,
-            totalSold: p.quantidade,
-            revenue: p.valor * p.quantidade
-          });
-        }
-        return acc;
-      }, [] as Array<{ productName: string; totalSold: number; revenue: number }>)
-      .sort((a, b) => b.revenue - a.revenue)
-      .slice(0, 5)
+  const showNotification = (message, type = 'success') => {
+    setNotification({ message, type });
+    setTimeout(() => setNotification(null), 3000);
   };
 
+  const handleSale = () => {
+    if (!selectedBatch) {
+      showNotification('Selecione um lote para vender', 'error');
+      return;
+    }
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(value);
+    const batch = batches.find(b => b.id === selectedBatch);
+    const disponivel = batch.quantidade - batch.quantidadeVendida;
+
+    if (quantity > disponivel) {
+      showNotification(`Quantidade indisponível. Disponível: ${disponivel}`, 'error');
+      return;
+    }
+
+    if (quantity < 1) {
+      showNotification('Quantidade deve ser maior que zero', 'error');
+      return;
+    }
+
+    const newSales = [];
+    for (let i = 0; i < quantity; i++) {
+      newSales.push({
+        id: Date.now() + i,
+        productId: batch.id,
+        productName: batch.nome,
+        batchId: batch.id,
+        quantity: 1,
+        unitPrice: batch.valor,
+        totalPrice: batch.valor,
+        saleDate: new Date().toISOString(),
+        customerName: customerName || 'Cliente',
+        paymentMethod,
+        createdAt: new Date().toISOString()
+      });
+    }
+
+    setBatches(batches.map(b => 
+      b.id === selectedBatch 
+        ? { ...b, quantidadeVendida: b.quantidadeVendida + quantity }
+        : b
+    ));
+
+    setSales([...sales, ...newSales]);
+
+    showNotification(`${quantity} unidade(s) vendida(s)! ${newSales.length} venda(s) registrada(s).`, 'success');
+
+    setQuantity(1);
+    setCustomerName('');
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+  const getBatchStatus = (batch) => {
+    const disponivel = batch.quantidade - batch.quantidadeVendida;
+    const percentual = (batch.quantidadeVendida / batch.quantidade) * 100;
+    
+    if (disponivel === 0) return { text: 'Esgotado', color: 'bg-red-100 text-red-800' };
+    if (percentual >= 80) return { text: 'Estoque Baixo', color: 'bg-yellow-100 text-yellow-800' };
+    return { text: 'Disponível', color: 'bg-green-100 text-green-800' };
   };
+
+  const getTotalStats = () => {
+    const totalSales = sales.length;
+    const totalRevenue = sales.reduce((sum, s) => sum + s.totalPrice, 0);
+    const avgTicket = totalSales > 0 ? totalRevenue / totalSales : 0;
+
+    return { totalSales, totalRevenue, avgTicket };
+  };
+
+  const stats = getTotalStats();
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-slate-800">Vendas</h2>
-        <div className="text-sm text-slate-500">
-          Vendas baseadas em produtos com data de saída
-        </div>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+      <div className="max-w-7xl mx-auto">
+        <h1 className="text-4xl font-bold text-gray-800 mb-2 flex items-center gap-3">
+          <ShoppingCart className="text-indigo-600" size={40} />
+          Sistema de Vendas por Unidade
+        </h1>
+        <p className="text-gray-600 mb-8">Venda produtos por unidade e acompanhe cada transação</p>
 
-      {/* Resumo de Vendas */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-slate-500 font-medium">Produtos Vendidos</p>
-              <p className="text-3xl font-bold text-slate-800 mt-1">{vendasSummary.totalSales}</p>
-              <p className="text-xs text-slate-500 mt-1">Produtos com data de saída</p>
+        {notification && (
+          <div className={`mb-6 p-4 rounded-lg flex items-center gap-3 ${
+            notification.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+          }`}>
+            {notification.type === 'success' ? <CheckCircle size={20} /> : <AlertCircle size={20} />}
+            {notification.message}
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="bg-white rounded-xl shadow-md p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-500 text-sm">Total de Vendas</p>
+                <p className="text-3xl font-bold text-gray-800">{stats.totalSales}</p>
+              </div>
+              <ShoppingCart className="text-blue-500" size={32} />
             </div>
-            <div className="bg-blue-100 p-3 rounded-lg">
-              <ShoppingCart className="text-blue-600" size={24} />
+          </div>
+
+          <div className="bg-white rounded-xl shadow-md p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-500 text-sm">Receita Total</p>
+                <p className="text-3xl font-bold text-green-600">R$ {stats.totalRevenue.toFixed(2)}</p>
+              </div>
+              <TrendingUp className="text-green-500" size={32} />
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-md p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-500 text-sm">Ticket Médio</p>
+                <p className="text-3xl font-bold text-indigo-600">R$ {stats.avgTicket.toFixed(2)}</p>
+              </div>
+              <Package className="text-indigo-500" size={32} />
             </div>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-slate-500 font-medium">Receita Total</p>
-              <p className="text-3xl font-bold text-green-600 mt-1">
-                {formatCurrency(vendasSummary.totalRevenue)}
-              </p>
-            </div>
-            <div className="bg-green-100 p-3 rounded-lg">
-              <DollarSign className="text-green-600" size={24} />
-            </div>
-          </div>
-        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+              <ShoppingCart className="text-indigo-600" />
+              Nova Venda
+            </h2>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-slate-500 font-medium">Ticket Médio</p>
-              <p className="text-3xl font-bold text-purple-600 mt-1">
-                {formatCurrency(vendasSummary.averageTicket)}
-              </p>
-            </div>
-            <div className="bg-purple-100 p-3 rounded-lg">
-              <TrendingUp className="text-purple-600" size={24} />
-            </div>
-          </div>
-        </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Selecione o Lote
+                </label>
+                <select
+                  value={selectedBatch || ''}
+                  onChange={(e) => setSelectedBatch(Number(e.target.value))}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                >
+                  <option value="">Selecione um lote...</option>
+                  {batches.map(batch => {
+                    const disponivel = batch.quantidade - batch.quantidadeVendida;
+                    return (
+                      <option key={batch.id} value={batch.id} disabled={disponivel === 0}>
+                        {batch.nome} - R$ {batch.valor.toFixed(2)} (Disponível: {disponivel})
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-slate-500 font-medium">Tipos de Produtos</p>
-              <p className="text-3xl font-bold text-orange-600 mt-1">
-                {vendasSummary.topProducts.length}
-              </p>
-            </div>
-            <div className="bg-orange-100 p-3 rounded-lg">
-              <Package className="text-orange-600" size={24} />
-            </div>
-          </div>
-        </div>
-      </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Quantidade
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  value={quantity}
+                  onChange={(e) => setQuantity(Number(e.target.value))}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                />
+                {selectedBatch && (
+                  <p className="text-sm text-gray-500 mt-1">
+                    Valor total: R$ {(batches.find(b => b.id === selectedBatch)?.valor * quantity).toFixed(2)}
+                  </p>
+                )}
+              </div>
 
-      {/* Informação sobre como registrar vendas */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <div className="flex items-center gap-2 mb-2">
-          <div className="bg-blue-100 p-1 rounded">
-            <ShoppingCart className="text-blue-600" size={16} />
-          </div>
-          <h4 className="font-medium text-blue-800">Como registrar vendas</h4>
-        </div>
-        <p className="text-sm text-blue-700">
-          Para registrar uma venda, vá para a aba <strong>"Gerenciar"</strong> e adicione uma <strong>data de saída</strong> ao produto vendido. 
-          Os produtos com data de saída aparecerão automaticamente aqui como vendas.
-        </p>
-      </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Cliente (opcional)
+                </label>
+                <input
+                  type="text"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  placeholder="Nome do cliente"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                />
+              </div>
 
-      {/* Lista de Produtos Vendidos */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-        <h3 className="text-lg font-bold text-slate-800 mb-4">Produtos Vendidos</h3>
-        
-        {produtosVendidos.length === 0 ? (
-          <div className="text-center py-8">
-            <Receipt className="mx-auto text-slate-400 mb-3" size={48} />
-            <p className="text-slate-500">Nenhum produto vendido ainda.</p>
-            <p className="text-sm text-slate-400 mt-1">Adicione data de saída aos produtos na aba "Gerenciar".</p>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Método de Pagamento
+                </label>
+                <select
+                  value={paymentMethod}
+                  onChange={(e) => setPaymentMethod(e.target.value)}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                >
+                  <option value="dinheiro">Dinheiro</option>
+                  <option value="cartao">Cartão</option>
+                  <option value="pix">PIX</option>
+                </select>
+              </div>
+
+              <button
+                onClick={handleSale}
+                className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2"
+              >
+                <ShoppingCart size={20} />
+                Registrar Venda
+              </button>
+            </div>
           </div>
-        ) : (
-          <div className="space-y-3">
-            {produtosVendidos.map(produto => {
-              const dataEntrada = new Date(produto.dataEntrada);
-              const dataSaida = new Date(produto.dataSaida!);
-              const diasNoEstoque = Math.ceil((dataSaida.getTime() - dataEntrada.getTime()) / (1000 * 60 * 60 * 24));
-              const valorTotal = produto.valor * produto.quantidade;
-              
-              return (
-                <div key={produto.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition">
-                  <div className="flex items-center gap-4">
-                    <div className="bg-green-100 p-2 rounded-lg">
-                      <ShoppingCart className="text-green-600" size={20} />
+
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+              <Package className="text-indigo-600" />
+              Lotes Disponíveis
+            </h2>
+
+            <div className="space-y-4 max-h-[600px] overflow-y-auto">
+              {batches.map(batch => {
+                const disponivel = batch.quantidade - batch.quantidadeVendida;
+                const percentual = (batch.quantidadeVendida / batch.quantidade) * 100;
+                const status = getBatchStatus(batch);
+                const batchSales = sales.filter(s => s.batchId === batch.id);
+
+                return (
+                  <div
+                    key={batch.id}
+                    className={`p-4 rounded-lg border-2 transition-all cursor-pointer ${
+                      selectedBatch === batch.id
+                        ? 'border-indigo-500 bg-indigo-50'
+                        : 'border-gray-200 hover:border-indigo-300'
+                    }`}
+                    onClick={() => disponivel > 0 && setSelectedBatch(batch.id)}
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-gray-800">{batch.nome}</h3>
+                        <p className="text-sm text-gray-600">R$ {batch.valor.toFixed(2)} por unidade</p>
+                      </div>
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${status.color}`}>
+                        {status.text}
+                      </span>
                     </div>
-                    <div>
-                      <p className="font-medium text-slate-800">{produto.nome}</p>
-                      <div className="flex items-center gap-4 text-sm text-slate-500">
-                        <span className="flex items-center gap-1">
-                          <Package size={14} />
-                          {produto.quantidade} unidades
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <DollarSign size={14} />
-                          {formatCurrency(produto.valor)} cada
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Calendar size={14} />
-                          Saída: {formatDate(produto.dataSaida!)}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <TrendingUp size={14} />
-                          {diasNoEstoque} dias no estoque
-                        </span>
+
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Total:</span>
+                        <span className="font-semibold">{batch.quantidade} unidades</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Vendidas:</span>
+                        <span className="font-semibold text-blue-600">{batch.quantidadeVendida} unidades</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Disponível:</span>
+                        <span className="font-semibold text-green-600">{disponivel} unidades</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Vendas registradas:</span>
+                        <span className="font-semibold">{batchSales.length} transações</span>
+                      </div>
+                    </div>
+
+                    <div className="mt-3">
+                      <div className="flex justify-between text-xs text-gray-500 mb-1">
+                        <span>Progresso</span>
+                        <span>{percentual.toFixed(1)}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className="bg-indigo-600 h-2 rounded-full transition-all"
+                          style={{ width: `${percentual}%` }}
+                        />
                       </div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-lg font-bold text-green-600">
-                      {formatCurrency(valorTotal)}
-                    </p>
-                    <p className="text-xs text-slate-500">
-                      {formatCurrency(produto.valor)} × {produto.quantidade}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* Top Produtos */}
-      {vendasSummary.topProducts.length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-          <h3 className="text-lg font-bold text-slate-800 mb-4">Top Produtos Vendidos</h3>
-          <div className="space-y-3">
-            {vendasSummary.topProducts.map((product, index) => (
-              <div key={index} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <div className="bg-yellow-100 p-1 rounded text-sm font-bold text-yellow-700">
-                    #{index + 1}
-                  </div>
-                  <span className="font-medium text-slate-800">{product.productName}</span>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-bold text-green-600">
-                    {formatCurrency(product.revenue)}
-                  </p>
-                  <p className="text-xs text-slate-500">{product.totalSold} unidades</p>
-                </div>
-              </div>
-            ))}
+                );
+              })}
+            </div>
           </div>
         </div>
-      )}
+
+        <div className="mt-8 bg-white rounded-xl shadow-lg p-6">
+          <h2 className="text-2xl font-bold text-gray-800 mb-6">Últimas Vendas</h2>
+          
+          {sales.length === 0 ? (
+            <p className="text-gray-500 text-center py-8">Nenhuma venda registrada ainda</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left py-3 px-4">ID</th>
+                    <th className="text-left py-3 px-4">Produto</th>
+                    <th className="text-left py-3 px-4">Cliente</th>
+                    <th className="text-left py-3 px-4">Qtd</th>
+                    <th className="text-left py-3 px-4">Valor</th>
+                    <th className="text-left py-3 px-4">Pagamento</th>
+                    <th className="text-left py-3 px-4">Data</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sales.slice(-10).reverse().map(sale => (
+                    <tr key={sale.id} className="border-b hover:bg-gray-50">
+                      <td className="py-3 px-4 text-sm">#{sale.id}</td>
+                      <td className="py-3 px-4 text-sm">{sale.productName}</td>
+                      <td className="py-3 px-4 text-sm">{sale.customerName}</td>
+                      <td className="py-3 px-4 text-sm">{sale.quantity}</td>
+                      <td className="py-3 px-4 text-sm font-semibold text-green-600">
+                        R$ {sale.totalPrice.toFixed(2)}
+                      </td>
+                      <td className="py-3 px-4 text-sm capitalize">{sale.paymentMethod}</td>
+                      <td className="py-3 px-4 text-sm">
+                        {new Date(sale.saleDate).toLocaleString('pt-BR')}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
 
-export default SalesTab;
+export default SalesInterface;  
