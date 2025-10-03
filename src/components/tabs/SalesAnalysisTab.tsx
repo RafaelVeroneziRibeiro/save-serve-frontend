@@ -186,6 +186,9 @@ const SalesAnalysisTab: React.FC<SalesAnalysisTabProps> = ({ products, sales: re
               Analisando {useRealData ? (realSales?.length || 0) : salesData.length} transações
               {useRealData ? ' (dados reais)' : ' (dados de demonstração)'}
             </p>
+            <p className="text-sm text-slate-500">
+              Incluindo análise de datas de saída dos produtos
+            </p>
           </div>
         ) : analysis ? (
           <>

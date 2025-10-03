@@ -122,25 +122,43 @@ export async function analyzeSalesWithAI(salesData: SalesData[] | RealSalesData[
       };
     });
 
-    const estoqueAtual = products.map(p => ({
+    // Produtos vendidos (com data de saída)
+    const produtosVendidos = products.filter(p => p.dataSaida).map(p => ({
       nome: p.nome,
       valor: p.valor,
+      quantidade: p.quantidade,
+      dataEntrada: p.dataEntrada,
+      dataSaida: p.dataSaida,
+      dataValidade: p.dataValidade,
+      diasNoEstoque: Math.ceil((new Date(p.dataSaida!).getTime() - new Date(p.dataEntrada).getTime()) / (1000 * 60 * 60 * 24)),
+      diasAteVencer: Math.ceil((new Date(p.dataValidade).getTime() - new Date(p.dataSaida!).getTime()) / (1000 * 60 * 60 * 24))
+    }));
+
+    // Produtos em estoque (sem data de saída)
+    const estoqueAtual = products.filter(p => !p.dataSaida).map(p => ({
+      nome: p.nome,
+      valor: p.valor,
+      quantidade: p.quantidade,
       validade: p.dataValidade,
       diasVencer: Math.ceil((new Date(p.dataValidade).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
     }));
 
     const prompt = `
-Você é um especialista em análise de vendas e comportamento do consumidor para supermercados. Analise APENAS os dados de vendas fornecidos abaixo:
+Você é um especialista em análise de vendas e comportamento do consumidor para supermercados. Analise APENAS os dados fornecidos abaixo:
 
 DATA ATUAL: ${hoje}
 
 DADOS DE VENDAS REAIS (${dadosVendas.length} transações):
 ${JSON.stringify(dadosVendas, null, 2)}
 
-ESTOQUE ATUAL:
+PRODUTOS VENDIDOS (com datas de saída - ${produtosVendidos.length} produtos):
+${JSON.stringify(produtosVendidos, null, 2)}
+
+ESTOQUE ATUAL (produtos não vendidos - ${estoqueAtual.length} produtos):
 ${JSON.stringify(estoqueAtual, null, 2)}
 
-IMPORTANTE: Use APENAS os dados de vendas fornecidos acima. NÃO invente ou adicione dados fictícios.
+IMPORTANTE: Use APENAS os dados fornecidos acima. NÃO invente ou adicione dados fictícios.
+ANÁLISE: Considere tanto as transações de venda quanto os produtos que saíram do estoque com data de saída.
 
 IMPORTANTE: Retorne APENAS um JSON válido seguindo esta estrutura exata:
 
@@ -214,6 +232,10 @@ ANÁLISE DEVE CONSIDERAR:
 8. Previsão de demanda baseada em histórico
 9. Otimização de preços baseada em elasticidade
 10. Estratégias de retenção de clientes
+11. TEMPO NO ESTOQUE: Analise quantos dias os produtos ficaram no estoque antes de sair
+12. ROTATIVIDADE: Identifique produtos que saem rápido vs produtos que ficam muito tempo
+13. PADRÕES TEMPORAIS: Analise se há horários/dias específicos com mais saídas
+14. EFICIÊNCIA: Produtos que saem próximo ao vencimento vs produtos que saem rapidamente
 
 Seja específico e acionável nas recomendações.
 `;
@@ -226,11 +248,11 @@ Seja específico e acionável nas recomendações.
     
   } catch (error) {
     console.error('Erro na análise de vendas IA:', error);
-    return generateFallbackSalesAnalysis(salesData);
+    return generateFallbackSalesAnalysis(salesData, products);
   }
 }
 
-function generateFallbackSalesAnalysis(salesData: SalesData[] | RealSalesData[]): SalesAnalysis {
+function generateFallbackSalesAnalysis(salesData: SalesData[] | RealSalesData[], products?: any[]): SalesAnalysis {
   // Converter dados para formato unificado
   const vendasUnificadas = salesData.map(venda => {
     if ('productName' in venda) {
@@ -249,6 +271,24 @@ function generateFallbackSalesAnalysis(salesData: SalesData[] | RealSalesData[])
     // Dados mockados (SalesData)
     return venda;
   });
+
+  // Analisar produtos com data de saída se disponível
+  let produtosVendidos = 0;
+  let tempoMedioEstoque = 0;
+  
+  if (products) {
+    const produtosComSaida = products.filter(p => p.dataSaida);
+    produtosVendidos = produtosComSaida.length;
+    
+    if (produtosComSaida.length > 0) {
+      const temposEstoque = produtosComSaida.map(p => {
+        const entrada = new Date(p.dataEntrada);
+        const saida = new Date(p.dataSaida);
+        return Math.ceil((saida.getTime() - entrada.getTime()) / (1000 * 60 * 60 * 24));
+      });
+      tempoMedioEstoque = temposEstoque.reduce((sum, tempo) => sum + tempo, 0) / temposEstoque.length;
+    }
+  }
 
   // Calcular métricas corretas
   const totalTransacoes = vendasUnificadas.length; // Número de transações de venda
@@ -281,8 +321,13 @@ function generateFallbackSalesAnalysis(salesData: SalesData[] | RealSalesData[])
     .sort((a, b) => b.vendas - a.vendas)
     .slice(0, 5);
 
+  const resumoBase = `Análise de ${totalTransacoes} transações de venda mostra receita total de R$ ${receitaTotal.toFixed(2)} com ticket médio de R$ ${ticketMedio.toFixed(2)}.`;
+  const resumoCompleto = produtosVendidos > 0 
+    ? `${resumoBase} ${produtosVendidos} produtos saíram do estoque com tempo médio de ${tempoMedioEstoque.toFixed(0)} dias.`
+    : resumoBase;
+
   return {
-    resumo: `Análise de ${totalTransacoes} transações de venda mostra receita total de R$ ${receitaTotal.toFixed(2)} com ticket médio de R$ ${ticketMedio.toFixed(2)}.`,
+    resumo: resumoCompleto,
     tendencias: [
       {
         periodo: 'Última semana',
