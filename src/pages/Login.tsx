@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, Mail, Lock, User, ArrowRight } from 'lucide-react';
 
-// --- DADOS MOCKADOS PARA TESTE ---
-// Em um app real, isso viria de um banco de dados
 const mockUsers = [
     {
         name: 'Admin do Sistema',
@@ -10,7 +8,6 @@ const mockUsers = [
         password: '123'
     }
 ];
-// ------------------------------------
 
 interface AuthPageProps {
     onLoginSuccess: (userName: string) => void;

@@ -8,6 +8,7 @@ import StockTab from './components/tabs/StockTab';
 import ManageTab from './components/tabs/ManageTab';
 import AlertsTab from './components/tabs/AlertsTab';
 import FeatureFlagsTab from './components/tabs/FeatureFlagsTab';
+import PricingAIPanel from './components/tabs/PricingAiPanel'; // ADICIONE
 
 import AuthPage from './pages/Login';
 
@@ -38,6 +39,8 @@ const InventoryDashboard: React.FC<{ onLogout: () => void; userName: string; }> 
         return <ManageTab {...inventory} />;
       case 'alerts':
         return <AlertsTab alerts={inventory.alerts} />;
+      case 'pricing':  // ADICIONE
+        return <PricingAIPanel products={inventory.products} />;
       case 'flags': 
         return <FeatureFlagsTab featureFlags={featureFlags} toggleFlag={toggleFlag} />;
       default:
@@ -52,6 +55,7 @@ const InventoryDashboard: React.FC<{ onLogout: () => void; userName: string; }> 
         showNotifications={featureFlags.lowStockNotifications} 
         onLogout={onLogout}
         userName={userName}
+        products={inventory.products} // ADICIONE para o botão no header
       />
       <Navigation 
         activeTab={activeTab} 

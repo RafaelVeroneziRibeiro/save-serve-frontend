@@ -1,7 +1,7 @@
 // src/components/layout/Navigation.tsx
 
 import React from 'react';
-import { Home, Box, Edit2, AlertTriangle, Settings } from 'lucide-react';
+import { Home, Box, Edit2, AlertTriangle, Settings, DollarSign } from 'lucide-react';
 import { TabType } from '../../types';
 
 interface NavigationProps {
@@ -14,6 +14,7 @@ const TABS = [
   { id: 'stock' as TabType, label: 'Estoque', icon: Box },
   { id: 'manage' as TabType, label: 'Gerenciar', icon: Edit2 },
   { id: 'alerts' as TabType, label: 'Alertas', icon: AlertTriangle },
+  { id: 'pricing' as TabType, label: 'Precificação IA', icon: DollarSign }, // NOVO
   { id: 'flags' as TabType, label: 'Feature Flags', icon: Settings }
 ];
 

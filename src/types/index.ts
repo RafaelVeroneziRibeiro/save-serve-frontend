@@ -35,4 +35,4 @@ export interface FormData {
   dataValidade: string;
 }
 
-export type TabType = 'home' | 'stock' | 'manage' | 'alerts' | 'flags';
+export type TabType = 'home' | 'stock' | 'manage' | 'alerts' | 'flags' | 'pricing';
