@@ -1,73 +1,102 @@
-# React + TypeScript + Vite
+📊 Save & Serve IA - Frontend
+Projeto desenvolvido para o Hackathon AI Challenge, proposto na SECOM 2025 - UFSC.
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+🚀 Sobre o Projeto
+Frontend do projeto Save & Serve IA, uma plataforma inteligente para análise de dados e prevenção de perdas de alimentos. A solução é focada em otimizar a gestão de mercados, hortifrutis e varejistas do setor alimentício.
 
-Currently, two official plugins are available:
+👥 Equipe de Desenvolvimento
+Este projeto foi concebido e desenvolvido pela seguinte equipe:
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Gabriel Baggio
 
-## React Compiler
+Rafael Ribeiro
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Rogério Batisti
 
-## Expanding the ESLint configuration
+Tiago Raimundi
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+Vinicius Miranda
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+🛠️ Tecnologias Utilizadas
+O frontend foi construído com um stack de tecnologias modernas, visando performance e uma ótima experiência de desenvolvimento.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+Framework Principal: React
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+Linguagem: TypeScript
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Build Tool: Vite
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+Estilização: Tailwind CSS
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+Ícones: Lucide React
+
+Arquitetura:
+
+Component-Based Architecture
+
+Gerenciamento de estado com Hooks customizados (State Encapsulation)
+
+⚙️ Como Executar o Projeto Localmente
+Para rodar este projeto em sua máquina local, siga os passos abaixo.
+
+Pré-requisitos
+Node.js (versão 18.x ou superior)
+
+npm ou Yarn
+
+Passos de Instalação
+Clone o repositório:
+
+git clone [https://github.com/seu-usuario/save-serve-frontend.git](https://github.com/seu-usuario/save-serve-frontend.git)
+
+Navegue até o diretório do projeto:
+
+cd save-serve-frontend
+
+Instale as dependências:
+
+npm install
+
+ou, se estiver usando Yarn:
+
+yarn
+
+Inicie o servidor de desenvolvimento:
+
+npm run dev
+
+ou, com Yarn:
+
+yarn dev
+
+Abra seu navegador e acesse: http://localhost:5173 (ou a porta indicada no seu terminal).
+
+🧪 Para Testar
+Use as seguintes credenciais para acessar a aplicação com dados mockados:
+
+Email: admin@mercado.com
+
+Senha: 123
+
+📂 Estrutura de Pastas
+O projeto segue uma estrutura de pastas lógica e escalável para facilitar a localização e manutenção do código:
+
+src/
+|-- components/      # Componentes de UI reutilizáveis (botões, cards, etc.)
+|   |-- layout/      # Componentes estruturais (Header, Navigation)
+|   |-- tabs/        # Componentes que representam cada aba da aplicação
+|
+|-- hooks/           # Hooks customizados para encapsular lógicas de negócio
+|
+|-- pages/           # Componentes que representam páginas completas (Login, etc.)
+|
+|-- types/           # Definições de tipos e interfaces do TypeScript
+|
+|-- App.tsx          # Componente raiz que controla a renderização
+|
+|-- main.tsx         # Ponto de entrada da aplicação React
+
+📄 Licença
+Este projeto está sob a licença MIT. Veja o arquivo LICENSE para mais detalhes.
+
+Hackathon AI Challenge - SECOM 2025 UFSC
