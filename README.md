@@ -93,6 +93,4 @@ src/
 
 **Hackathon AI Challenge - SECOM 2025 UFSC**
 
----
 
-**Hackathon AI Challenge - SECOM 2025 UFSC**
